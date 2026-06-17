@@ -313,6 +313,7 @@ app.get('/admin', requireAuth, async (req, res) => {
             <style>
                 body { font-family: sans-serif; background: #f4f4f9; padding: 20px; color: #333; }
                 .container { max-width: 1000px; margin: auto; background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+                .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
                 h1 { border-bottom: 2px solid #333; padding-bottom: 10px; margin-top: 0; }
                 h2 { margin-top: 30px; color: #444; }
                 .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 20px; }
@@ -321,14 +322,18 @@ app.get('/admin', requireAuth, async (req, res) => {
                 label { display: block; font-weight: bold; margin-bottom: 5px; font-size: 0.9em; }
                 input, select { width: 100%; padding: 10px; box-sizing: border-box; border: 1px solid #ccc; border-radius: 4px; font-size: 1em; }
                 .section-label { font-size: 0.85em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; font-weight: bold; grid-column: 1 / -1; margin-top: 10px; border-top: 1px dashed #ddd; padding-top: 10px; }
-                .btn-submit { background: #28a745; color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 1em; width: 100%; margin-top: 10px; }
+                .btn-submit { background: #28a745; color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 1em; width: 100%; margin-top: 10px; transition: background 0.2s; }
                 .btn-submit:hover { background: #218838; }
+                .btn-cancel { background: #6c757d; color: white; border: none; padding: 12px 20px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 1em; width: 100%; margin-top: 10px; display: none; transition: background 0.2s; }
+                .btn-cancel:hover { background: #5a6268; }
                 table { width: 100%; border-collapse: collapse; margin-top: 20px; }
                 th, td { padding: 10px 12px; border: 1px solid #ddd; text-align: left; font-size: 0.9em; }
                 th { background: #f8f9fa; }
+                .actions-cell { display: flex; gap: 5px; }
+                .edit-btn { background: #007bff; color: white; border: none; padding: 7px 12px; border-radius: 4px; font-size: 0.85em; cursor: pointer; font-weight: bold; text-decoration: none; }
+                .edit-btn:hover { background: #0056b3; }
                 .delete-btn { background: #dc3545; color: white; text-decoration: none; padding: 7px 12px; border-radius: 4px; font-size: 0.85em; cursor: pointer; border: none; font-weight: bold; }
                 .delete-btn:hover { background: #c82333; }
-                .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
                 .logout { color: #dc3545; text-decoration: none; font-weight: bold; }
                 .logout:hover { text-decoration: underline; }
                 .status-badge { padding: 4px 8px; border-radius: 4px; font-size: 0.82em; font-weight: bold; white-space: nowrap; }
@@ -344,8 +349,8 @@ app.get('/admin', requireAuth, async (req, res) => {
                     <a href="/admin/logout" class="logout">Cerrar Sesión</a>
                 </div>
 
-                <h2>Añadir Partido</h2>
-                <form action="/admin/add" method="POST">
+                <h2 id="form-title">Añadir Partido</h2>
+                <form id="match-form" action="/admin/add" method="POST">
                     <div class="form-grid">
                         <div class="form-group">
                             <label>Equipo Local</label>
@@ -387,7 +392,8 @@ app.get('/admin', requireAuth, async (req, res) => {
                             <input type="url" name="ucaster_script_2" placeholder="ej: https://... (opcional)">
                         </div>
                     </div>
-                    <button type="submit" class="btn-submit">Añadir Partido</button>
+                    <button type="submit" id="form-submit-btn" class="btn-submit">Añadir Partido</button>
+                    <button type="button" id="btn-cancel" class="btn-cancel" onclick="cancelarEdicion()">Cancelar Edición</button>
                 </form>
 
                 <h2>Partidos Actuales (${matches.length})</h2>
@@ -413,15 +419,77 @@ app.get('/admin', requireAuth, async (req, res) => {
                                 <td>${m.ucaster_id_1 ? `<code>${m.ucaster_id_1}</code>` : '<span style="color:#aaa;">-</span>'}</td>
                                 <td>${m.ucaster_id_2 ? `<code>${m.ucaster_id_2}</code>` : '<span style="color:#aaa;">-</span>'}</td>
                                 <td>
-                                    <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0;" onsubmit="return confirm('¿Eliminar este partido?');">
-                                        <button type="submit" class="delete-btn">Eliminar</button>
-                                    </form>
+                                    <div class="actions-cell">
+                                        <button type="button" class="edit-btn" onclick="cargarPartido({
+                                            id: '${m.id}',
+                                            local: '${m.local.replace(/'/g, "\\'")}',
+                                            visitante: '${m.visitante.replace(/'/g, "\\'")}',
+                                            hora: '${m.hora ? m.hora : ''}',
+                                            estado: '${m.estado}',
+                                            ucaster_id_1: '${(m.ucaster_id_1 || '').replace(/'/g, "\\'")}',
+                                            ucaster_script_1: '${(m.ucaster_script_1 || '').replace(/'/g, "\\'")}',
+                                            ucaster_id_2: '${(m.ucaster_id_2 || '').replace(/'/g, "\\'")}',
+                                            ucaster_script_2: '${(m.ucaster_script_2 || '').replace(/'/g, "\\'")}'
+                                        })">Editar</button>
+                                        <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0;" onsubmit="return confirm('¿Eliminar este partido?');">
+                                            <button type="submit" class="delete-btn">Eliminar</button>
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                         `).join('')}
                     </tbody>
                 </table>
             </div>
+
+            <script>
+                const form = document.getElementById('match-form');
+                const formTitle = document.getElementById('form-title');
+                const formSubmitBtn = document.getElementById('form-submit-btn');
+                const btnCancel = document.getElementById('btn-cancel');
+
+                function cargarPartido(m) {
+                    form.action = '/admin/editar/' + m.id;
+                    formTitle.textContent = 'Editar Partido';
+                    formSubmitBtn.textContent = 'Guardar Cambios';
+                    formSubmitBtn.style.background = '#007bff';
+                    btnCancel.style.display = 'block';
+
+                    form.elements['local'].value = m.local;
+                    form.elements['visitante'].value = m.visitante;
+                    
+                    // Ajustar fecha/hora al formato requerido por input type="datetime-local" (YYYY-MM-DDTHH:MM)
+                    if (m.hora) {
+                        const date = new Date(m.hora);
+                        if (!isNaN(date.getTime())) {
+                            const tzoffset = date.getTimezoneOffset() * 60000;
+                            const localISOTime = (new Date(date.getTime() - tzoffset)).toISOString().slice(0, 16);
+                            form.elements['hora'].value = localISOTime;
+                        } else {
+                            form.elements['hora'].value = '';
+                        }
+                    } else {
+                        form.elements['hora'].value = '';
+                    }
+                    
+                    form.elements['estado'].value = m.estado;
+                    form.elements['ucaster_id_1'].value = m.ucaster_id_1;
+                    form.elements['ucaster_script_1'].value = m.ucaster_script_1;
+                    form.elements['ucaster_id_2'].value = m.ucaster_id_2;
+                    form.elements['ucaster_script_2'].value = m.ucaster_script_2;
+                    
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                }
+
+                function cancelarEdicion() {
+                    form.action = '/admin/add';
+                    formTitle.textContent = 'Añadir Partido';
+                    formSubmitBtn.textContent = 'Añadir Partido';
+                    formSubmitBtn.style.background = '#28a745';
+                    btnCancel.style.display = 'none';
+                    form.reset();
+                }
+            </script>
         </body>
         </html>
     `;
@@ -453,6 +521,32 @@ app.post('/admin/add', requireAuth, async (req, res) => {
     res.redirect('/admin');
 });
 
+// Acción de Editar → UPDATE en Supabase
+app.post('/admin/editar/:id', requireAuth, async (req, res) => {
+    const { local, visitante, hora, estado, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2 } = req.body;
+
+    const { error } = await supabase
+        .from('partidos')
+        .update({
+            local:            local || null,
+            visitante:        visitante || null,
+            hora:             hora || null,
+            estado:           estado || 'Próximo Partido',
+            ucaster_id_1:     ucaster_id_1 || null,
+            ucaster_script_1: ucaster_script_1 || null,
+            ucaster_id_2:     ucaster_id_2 || null,
+            ucaster_script_2: ucaster_script_2 || null,
+        })
+        .eq('id', req.params.id);
+
+    if (error) {
+        console.error('Error al editar partido:', error);
+        return res.status(500).send('Error al editar el partido. <a href="/admin">Volver</a>');
+    }
+
+    res.redirect('/admin');
+});
+
 // Acción de Eliminar → DELETE en Supabase
 app.post('/admin/eliminar/:id', requireAuth, async (req, res) => {
     const { error } = await supabase
@@ -476,3 +570,4 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 module.exports = app;
+
