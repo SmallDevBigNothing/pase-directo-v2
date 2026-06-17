@@ -6,9 +6,10 @@ Base de datos: **Supabase** (PostgreSQL)
 
 ## Arquitectura y Decisiones Técnicas
 - **Node.js + Express (Netlify Functions + serverless-http)**: Servidor Express tradicional configurado para ejecutarse en Netlify Functions. Se usa un archivo de redirección `netlify.toml` que enruta todas las peticiones a la función wrapper `netlify/functions/server.js`, la cual usa `serverless-http` para adaptar la app de Express.
-- **Base de datos persistente en Supabase**: Los partidos ya no se guardan en un array en memoria. Toda la lógica se ha migrado para leer, insertar y borrar datos usando la librería oficial `@supabase/supabase-js`.
+- **Base de datos persistente en Supabase**: Los partidos ya no se guardan en un array en memoria. Toda la lógica se ha migrado para realizar un CRUD completo (leer, insertar, editar y borrar datos) usando la librería oficial `@supabase/supabase-js`.
 - **Doble Fuente de Stream (Ucaster)**: La base de datos y la interfaz soportan ahora hasta 2 canales/fuentes diferentes de Ucaster (`ucaster_id_1`, `ucaster_script_1`, `ucaster_id_2`, `ucaster_script_2`).
 - **Selector de Fuente Dinámico**: En la vista de reproductor `/partido/:id`, si el partido cuenta con dos fuentes de stream configuradas, se muestra un selector dinámico para intercambiar la señal del stream sin salir de la página del reproductor.
+- **Panel de Administración Completo (CRUD)**: El panel de administración permite listar los partidos directamente desde Supabase, añadir nuevos encuentros, eliminar partidos existentes y editar toda su información (cargando los datos dinámicamente en el formulario mediante JS del lado del cliente) enviando peticiones POST correspondientes.
 - **Autenticación (express-session)**: Protege el endpoint `/admin` y sus subrutas. Las sesiones se guardan en memoria de manera efímera (pueden expirar aleatoriamente debido a la naturaleza serverless de las funciones de Netlify).
 - **Seguridad**: Contraseña de administrador leída de la variable de entorno `ADMIN_PASSWORD` (por defecto `AdminFutbol2026`).
 
