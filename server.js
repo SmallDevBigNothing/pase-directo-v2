@@ -6,10 +6,32 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // --- CLIENTE SUPABASE ---
-const supabase = createClient(
-    process.env.SUPABASE_URL,
-    process.env.SUPABASE_KEY
-);
+let supabase;
+if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
+    supabase = createClient(
+        process.env.SUPABASE_URL,
+        process.env.SUPABASE_KEY
+    );
+} else {
+    console.warn("ADVERTENCIA: SUPABASE_URL o SUPABASE_KEY no detectados. Usando cliente mock para pruebas locales.");
+    const mockQuery = {
+        select: () => mockQuery,
+        order: () => mockQuery,
+        eq: () => mockQuery,
+        in: () => mockQuery,
+        single: () => mockQuery,
+        insert: () => mockQuery,
+        update: () => mockQuery,
+        delete: () => mockQuery,
+        then: (onFulfilled) => {
+            return Promise.resolve({ data: [{ id: 'mock-uuid-123' }], error: null }).then(onFulfilled);
+        }
+    };
+    supabase = {
+        from: () => mockQuery
+    };
+}
+
 
 // Configurar middlewares
 app.use(express.urlencoded({ extended: true }));
@@ -562,6 +584,96 @@ app.post('/admin/eliminar/:id', requireAuth, async (req, res) => {
     res.redirect('/admin');
 });
 
+
+// API segura de sincronización para Raspado/Mistral
+app.post('/api/partidos/sync', async (req, res) => {
+    // 1. Validar Bearer Token
+    const authHeader = req.headers.authorization;
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ success: false, error: 'Unauthorized: Missing token' });
+    }
+    const token = authHeader.substring(7);
+    const expectedToken = process.env.SCRAPER_API_TOKEN || (process.env.NODE_ENV !== 'production' ? 'test-token-123' : null);
+    
+    if (!expectedToken) {
+        console.error('Error de configuración: SCRAPER_API_TOKEN no está definido en las variables de entorno de producción.');
+        return res.status(500).json({ success: false, error: 'Server misconfiguration' });
+    }
+    
+    if (token !== expectedToken) {
+        return res.status(401).json({ success: false, error: 'Unauthorized: Invalid token' });
+    }
+
+    const { partidos } = req.body;
+    if (!Array.isArray(partidos)) {
+        return res.status(400).json({ success: false, error: 'Invalid payload, expected array of partidos' });
+    }
+
+    const results = [];
+    for (const p of partidos) {
+        const { local, visitante, hora, estado, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2 } = p;
+        
+        if (!local || !visitante) {
+            continue;
+        }
+
+        // Buscar si ya existe el partido con el mismo equipo local y visitante en estado 'En Directo' o 'Próximo Partido'
+        const { data: existingMatches, error: searchError } = await supabase
+            .from('partidos')
+            .select('id')
+            .eq('local', local)
+            .eq('visitante', visitante)
+            .in('estado', ['En Directo', 'Próximo Partido']);
+
+        if (searchError) {
+            console.error('Error buscando partido existente:', searchError);
+            continue;
+        }
+
+        const matchData = {
+            local,
+            visitante,
+            hora: hora || null,
+            estado: estado || 'Próximo Partido',
+            ucaster_id_1: ucaster_id_1 || null,
+            ucaster_script_1: ucaster_script_1 || null,
+            ucaster_id_2: ucaster_id_2 || null,
+            ucaster_script_2: ucaster_script_2 || null
+        };
+
+        if (existingMatches && existingMatches.length > 0) {
+            // Actualizar el partido existente
+            const matchId = existingMatches[0].id;
+            const { error: updateError } = await supabase
+                .from('partidos')
+                .update(matchData)
+                .eq('id', matchId);
+
+            if (updateError) {
+                console.error(`Error actualizando partido ${local} vs ${visitante}:`, updateError);
+                results.push({ local, visitante, status: 'error', error: updateError.message });
+            } else {
+                results.push({ local, visitante, status: 'updated', id: matchId });
+            }
+        } else {
+            // Insertar nuevo partido
+            const { data: insertedData, error: insertError } = await supabase
+                .from('partidos')
+                .insert([matchData])
+                .select('id');
+
+            if (insertError) {
+                console.error(`Error insertando partido ${local} vs ${visitante}:`, insertError);
+                results.push({ local, visitante, status: 'error', error: insertError.message });
+            } else {
+                results.push({ local, visitante, status: 'inserted', id: insertedData?.[0]?.id });
+            }
+        }
+    }
+
+    return res.status(200).json({ success: true, processed: results });
+});
+
 // Arranque del servidor (solo en local, Vercel no usa app.listen)
 if (process.env.NODE_ENV !== 'production') {
     app.listen(PORT, () => {
@@ -570,4 +682,5 @@ if (process.env.NODE_ENV !== 'production') {
 }
 
 module.exports = app;
+
 
