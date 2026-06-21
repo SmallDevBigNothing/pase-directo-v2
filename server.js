@@ -56,53 +56,7 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
     console.warn("WARNING: SUPABASE_URL or SUPABASE_KEY not found. Using mock client for local testing.");
     
     // In-memory data store for local testing
-    const mockMatches = [
-        {
-            id: 'mock-uuid-1',
-            local: 'Real Madrid',
-            visitante: 'Barcelona',
-            hora: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(), // 2 hours from now
-            estado: 'Upcoming',
-            competicion: 'LaLiga',
-            logo_local: '',
-            logo_visitante: '',
-            ucaster_id_1: 'mad-bar-1',
-            ucaster_script_1: 'https://new.lastzone.top/static/scripts/hucaster.js',
-            ucaster_id_2: 'mad-bar-2',
-            ucaster_script_2: 'https://new.lastzone.top/static/scripts/hucaster.js',
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 'mock-uuid-2',
-            local: 'Manchester City',
-            visitante: 'Liverpool',
-            hora: new Date(Date.now() - 30 * 60 * 1000).toISOString(), // Live now (started 30m ago)
-            estado: 'Live',
-            competicion: 'Premier League',
-            logo_local: '',
-            logo_visitante: '',
-            ucaster_id_1: 'mci-liv-1',
-            ucaster_script_1: 'https://new.lastzone.top/static/scripts/hucaster.js',
-            ucaster_id_2: '',
-            ucaster_script_2: '',
-            created_at: new Date().toISOString()
-        },
-        {
-            id: 'mock-uuid-3',
-            local: 'Bayern Munich',
-            visitante: 'Borussia Dortmund',
-            hora: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // Tomorrow
-            estado: 'Upcoming',
-            competicion: 'Bundesliga',
-            logo_local: '',
-            logo_visitante: '',
-            ucaster_id_1: 'bay-dor-1',
-            ucaster_script_1: 'https://new.lastzone.top/static/scripts/hucaster.js',
-            ucaster_id_2: '',
-            ucaster_script_2: '',
-            created_at: new Date().toISOString()
-        }
-    ];
+    const mockMatches = [];
     
     const mockReports = [
         { id: 'report-1', partido_id: 'mock-uuid-2', canal: 1, created_at: new Date().toISOString() }
@@ -122,7 +76,9 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
             this.payload = null;
         }
         select(fields) {
-            this.action = 'select';
+            if (this.action !== 'insert' && this.action !== 'update' && this.action !== 'delete') {
+                this.action = 'select';
+            }
             return this;
         }
         order(field, { ascending } = { ascending: true }) {
@@ -379,6 +335,9 @@ app.get('/', async (req, res) => {
     const liveGroups = groupByComp(liveMatches);
     const upcomingGroups = groupByComp(upcomingMatches);
 
+    // Collect unique sports for tabs
+    const allSports = [...new Set(matches.map(m => m.deporte || 'Other'))].sort();
+
     const renderCard = (m, isLive) => {
         let reportButtonsHtml = '';
         if (isLive) {
@@ -403,21 +362,22 @@ app.get('/', async (req, res) => {
         }
 
         return `
-        <div class="match-card" style="animation: fade-in 0.4s ease both">
+        <div class="match-card" data-sport="${escapeHtml(m.deporte || 'Other')}" style="animation: fade-in 0.4s ease both">
             <div class="match-card-header">
                 <span class="comp-tag">${escapeHtml(m.competicion || 'Other')}</span>
                 ${isLive ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span>' : ''}
             </div>
             <div class="match-teams">
-                <div class="team">
-                    ${teamAvatarHTML(m.local, m.logo_local)}
-                    <span class="team-name">${escapeHtml(m.local)}</span>
+                <div class="team" ${!m.visitante ? 'style="max-width: 100%"' : ''}>
+                    ${(!m.deporte || m.deporte === 'Football' || m.deporte === 'Basketball') ? teamAvatarHTML(m.local, m.logo_local) : ''}
+                    <span class="team-name" ${!m.visitante ? 'style="white-space: normal;"' : ''}>${escapeHtml(m.local)}</span>
                 </div>
+                ${m.visitante ? `
                 <span class="vs">vs</span>
                 <div class="team">
-                    ${teamAvatarHTML(m.visitante, m.logo_visitante)}
+                    ${(!m.deporte || m.deporte === 'Football' || m.deporte === 'Basketball') ? teamAvatarHTML(m.visitante, m.logo_visitante) : ''}
                     <span class="team-name">${escapeHtml(m.visitante)}</span>
-                </div>
+                </div>` : ''}
             </div>
             <div class="match-meta">
                 ${isLive
@@ -450,8 +410,8 @@ app.get('/', async (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pase Directo — Live Football Streaming</title>
-    <meta name="description" content="Watch live football matches for free. Stream LaLiga, Champions League, Premier League and more.">
+    <title>Pase Directo — Live Sports Streaming</title>
+    <meta name="description" content="Watch live sports for free. Stream football, basketball, tennis, Formula 1, MotoGP, IndyCar and more.">
     <style>
         ${SHARED_CSS}
         header {
@@ -701,6 +661,38 @@ app.get('/', async (req, res) => {
             .logo { font-size: 1.25rem; }
             header { padding: 18px 0; }
             .section-header h2 { font-size: 1.15rem; }
+            .sport-tabs { gap: 6px; }
+            .sport-tab { padding: 6px 12px; font-size: 0.72rem; }
+        }
+        .sport-tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .sport-tab {
+            padding: 7px 16px;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-card);
+            color: var(--text-secondary);
+            transition: all var(--transition);
+            font-family: inherit;
+            letter-spacing: 0.3px;
+        }
+        .sport-tab:hover {
+            border-color: var(--border-hover);
+            color: var(--text-primary);
+            background: var(--bg-card-hover);
+        }
+        .sport-tab.active {
+            background: var(--gradient);
+            color: white;
+            border-color: transparent;
+            box-shadow: 0 2px 12px var(--accent-glow);
         }
         .card-report-actions {
             display: flex;
@@ -776,8 +768,14 @@ app.get('/', async (req, res) => {
     <main class="container">
         <div class="search-bar">
             <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team or competition..." autocomplete="off">
+            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
+
+        ${allSports.length > 1 ? `
+        <div class="sport-tabs" id="sport-tabs">
+            <button class="sport-tab active" data-filter="all">All Sports</button>
+            ${allSports.map(s => `<button class="sport-tab" data-filter="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')}
+        </div>` : ''}
 
         <section id="live-section">
             <div class="section-header">
@@ -832,20 +830,39 @@ app.get('/', async (req, res) => {
         updateCountdowns();
         setInterval(updateCountdowns, 1000);
 
-        // Search / Filter
+        // Search / Filter + Sport Tabs
         var searchInput = document.getElementById('search-input');
+        var activeSport = 'all';
+
+        function applyFilters() {
+            var query = (searchInput ? searchInput.value : '').toLowerCase().trim();
+            document.querySelectorAll('.match-card').forEach(function(card) {
+                var text = card.textContent.toLowerCase();
+                var sport = card.getAttribute('data-sport') || '';
+                var matchesText = !query || text.includes(query);
+                var matchesSport = activeSport === 'all' || sport === activeSport;
+                card.style.display = (matchesText && matchesSport) ? '' : 'none';
+            });
+            // hide empty comp-sections
+            document.querySelectorAll('.comp-section').forEach(function(sec) {
+                var hasVisible = Array.from(sec.querySelectorAll('.match-card')).some(function(c) { return c.style.display !== 'none'; });
+                sec.style.display = hasVisible ? '' : 'none';
+            });
+        }
+
         if (searchInput) {
-            searchInput.addEventListener('input', function() {
-                var query = this.value.toLowerCase().trim();
-                document.querySelectorAll('.match-card').forEach(function(card) {
-                    var text = card.textContent.toLowerCase();
-                    card.style.display = text.includes(query) ? '' : 'none';
-                });
-                // hide empty comp-sections
-                document.querySelectorAll('.comp-section').forEach(function(sec) {
-                    var visible = sec.querySelectorAll('.match-card[style=""], .match-card:not([style])');
-                    var hasVisible = Array.from(sec.querySelectorAll('.match-card')).some(function(c) { return c.style.display !== 'none'; });
-                    sec.style.display = hasVisible ? '' : 'none';
+            searchInput.addEventListener('input', applyFilters);
+        }
+
+        // Sport tab click handlers
+        var sportTabs = document.getElementById('sport-tabs');
+        if (sportTabs) {
+            sportTabs.querySelectorAll('.sport-tab').forEach(function(tab) {
+                tab.addEventListener('click', function() {
+                    sportTabs.querySelectorAll('.sport-tab').forEach(function(t) { t.classList.remove('active'); });
+                    tab.classList.add('active');
+                    activeSport = tab.getAttribute('data-filter');
+                    applyFilters();
                 });
             });
         }
@@ -998,7 +1015,7 @@ app.get('/partido/:id', async (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>${escapeHtml(match.local)} vs ${escapeHtml(match.visitante)} — Pase Directo</title>
+    <title>${escapeHtml(match.local)}${match.visitante ? ' vs ' + escapeHtml(match.visitante) : ''} — Pase Directo</title>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
         html, body { margin: 0; padding: 0; height: 100%; background: #000; overflow: hidden; font-family: 'Inter', sans-serif; }
@@ -1650,7 +1667,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                     </div>
                     <div class="form-group">
                         <label>Away Team</label>
-                        <input type="text" name="visitante" placeholder="e.g. Barcelona" required>
+                        <input type="text" name="visitante" placeholder="e.g. Barcelona (optional)">
                     </div>
                     <div class="form-group">
                         <label>Date & Time</label>
@@ -1667,6 +1684,18 @@ app.get('/admin', requireAuth, async (req, res) => {
                         <select name="estado" required>
                             <option value="Live">Live</option>
                             <option value="Upcoming" selected>Upcoming</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sport</label>
+                        <select name="deporte">
+                            <option value="Football">Football</option>
+                            <option value="Basketball">Basketball</option>
+                            <option value="Tennis">Tennis</option>
+                            <option value="Formula 1">Formula 1</option>
+                            <option value="MotoGP">MotoGP</option>
+                            <option value="IndyCar">IndyCar</option>
+                            <option value="Other">Other</option>
                         </select>
                     </div>
 
@@ -1730,7 +1759,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                     <tr>
                         <td class="match-info">
                             <div class="comp-small">${escapeHtml(m.competicion || 'Other')}</div>
-                            <strong>${escapeHtml(m.local)} vs ${escapeHtml(m.visitante)}</strong>
+                            <strong>${escapeHtml(m.local)}${m.visitante ? ' vs ' + escapeHtml(m.visitante) : ''}</strong>
                             <small>${formatMatchDate(m.hora)}</small>
                         </td>
                         <td>
@@ -1752,6 +1781,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                                     hora:'${m.hora||''}',
                                     estado:'${m.estado}',
                                     competicion:\`${(m.competicion||'Other').replace(/`/g,'\\`')}\`,
+                                    deporte:\`${(m.deporte||'Football').replace(/`/g,'\\`')}\`,
                                     ucaster_id_1:\`${(m.ucaster_id_1||'').replace(/`/g,'\\`')}\`,
                                     ucaster_script_1:\`${(m.ucaster_script_1||'').replace(/`/g,'\\`')}\`,
                                     ucaster_id_2:\`${(m.ucaster_id_2||'').replace(/`/g,'\\`')}\`,
@@ -1762,7 +1792,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                                 <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
                                     <button type="submit" class="btn-sm btn-delete">Delete</button>
                                 </form>
-                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}','${escapeHtml(m.local)} vs ${escapeHtml(m.visitante)}')">Preview</button>` : ''}
+                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}','${escapeHtml(m.local).replace(/'/g, "\\'")}${m.visitante ? ' vs ' + escapeHtml(m.visitante).replace(/'/g, "\\'") : ''}')">Preview</button>` : ''}
                             </div>
                         </td>
                     </tr>`;
@@ -1783,7 +1813,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                     return `
                     <div class="report-item" id="report-${matchId}">
                         <div class="report-info">
-                            <div class="report-match">${escapeHtml(match.local)} vs ${escapeHtml(match.visitante)}</div>
+                            <div class="report-match">${escapeHtml(match.local)}${match.visitante ? ' vs ' + escapeHtml(match.visitante) : ''}</div>
                             <div class="report-detail">${channelDetails}</div>
                         </div>
                         <span class="report-count">${info.total}</span>
@@ -1838,6 +1868,7 @@ app.get('/admin', requireAuth, async (req, res) => {
 
             form.elements['estado'].value = m.estado;
             form.elements['competicion'].value = m.competicion || 'Other';
+            form.elements['deporte'].value = m.deporte || 'Football';
             form.elements['ucaster_id_1'].value = m.ucaster_id_1;
             form.elements['ucaster_script_1'].value = m.ucaster_script_1;
             form.elements['ucaster_id_2'].value = m.ucaster_id_2;
@@ -1959,7 +1990,7 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
 
 // Add Match
 app.post('/admin/add', requireAuth, async (req, res) => {
-    const { local, visitante, hora, estado, competicion, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
+    const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
 
     const { error } = await supabase.from('partidos').insert([{
         local: local || null,
@@ -1967,6 +1998,7 @@ app.post('/admin/add', requireAuth, async (req, res) => {
         hora: hora || null,
         estado: estado || 'Upcoming',
         competicion: competicion || 'Other',
+        deporte: deporte || 'Football',
         ucaster_id_1: ucaster_id_1 || null,
         ucaster_script_1: ucaster_script_1 || null,
         ucaster_id_2: ucaster_id_2 || null,
@@ -1984,7 +2016,7 @@ app.post('/admin/add', requireAuth, async (req, res) => {
 
 // Edit Match
 app.post('/admin/editar/:id', requireAuth, async (req, res) => {
-    const { local, visitante, hora, estado, competicion, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
+    const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
 
     const { error } = await supabase.from('partidos')
         .update({
@@ -1993,6 +2025,7 @@ app.post('/admin/editar/:id', requireAuth, async (req, res) => {
             hora: hora || null,
             estado: estado || 'Upcoming',
             competicion: competicion || 'Other',
+            deporte: deporte || 'Football',
             ucaster_id_1: ucaster_id_1 || null,
             ucaster_script_1: ucaster_script_1 || null,
             ucaster_id_2: ucaster_id_2 || null,
@@ -2050,9 +2083,9 @@ app.post('/api/partidos/sync', async (req, res) => {
 
     const results = [];
     for (const p of partidos) {
-        const { local, visitante, hora, estado, competicion, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2 } = p;
+        const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2 } = p;
 
-        if (!local || !visitante) continue;
+        if (!local) continue;
 
         const normalizedStatus = statusMap[estado] || estado || 'Upcoming';
 
@@ -2060,7 +2093,7 @@ app.post('/api/partidos/sync', async (req, res) => {
             .from('partidos')
             .select('id')
             .eq('local', local)
-            .eq('visitante', visitante)
+            .eq('visitante', visitante || '')
             .in('estado', ['Live', 'Upcoming']);
 
         if (searchError) {
@@ -2069,10 +2102,11 @@ app.post('/api/partidos/sync', async (req, res) => {
         }
 
         const matchData = {
-            local, visitante,
+            local, visitante: visitante || '',
             hora: hora || null,
             estado: normalizedStatus,
             competicion: competicion || 'Other',
+            deporte: deporte || 'Football',
             ucaster_id_1: ucaster_id_1 || null,
             ucaster_script_1: ucaster_script_1 || null,
             ucaster_id_2: ucaster_id_2 || null,
