@@ -1,0 +1,22 @@
+name: Sync Sports Streams
+
+on:
+  schedule:
+    # Runs every 15 minutes
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Allows manual trigger from GitHub UI
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Run Scraper Sync
+        run: node scripts/sync-tiroalpalo.js --live --api-url "${{ secrets.API_URL }}" --token "${{ secrets.SCRAPER_API_TOKEN }}"

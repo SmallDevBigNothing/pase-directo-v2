@@ -1,4 +1,4 @@
-# Memory — Pase Directo V3.0 (Full Overhaul)
+# Memory — Pase Directo V4.0 (Multi-Sport + Auto Scraper)
 
 ## Project
 Deployment: **Netlify** (Functions)
@@ -9,9 +9,12 @@ Database: **Supabase** (PostgreSQL)
 - **Persistent database in Supabase**: Full CRUD on the `partidos` table plus a new `reportes` table for user-submitted stream-down reports.
 - **Dual Stream Source (Ucaster)**: Two channels per match (`ucaster_id_1`, `ucaster_script_1`, `ucaster_id_2`, `ucaster_script_2`) with a dynamic source selector in the player view.
 - **Competition Grouping**: Matches are grouped by competition (LaLiga, Champions League, etc.) on the public homepage using the `competicion` column.
-- **Team Logos / Avatars**: Optional `logo_local` and `logo_visitante` URL fields. When no logo is provided, a deterministic CSS avatar with the team's initials and a unique hue (derived from the team name hash) is generated.
+- **Multi-Sport Support**: Not just football — supports Basketball, Tennis, Formula 1, MotoGP, IndyCar, and Other via the `deporte` column. Sport filter tabs on homepage allow instant filtering.
+- **Automatic Scraper (`scripts/sync-tiroalpalo.js`)**: Node.js script (zero dependencies) that scrapes `tiroalpalof.org/directo` for live matches, extracts Ucaster stream codes from `new.lastzone.top` links, and POSTs to `/api/partidos/sync`. Supports `--dry-run` (default) and `--live` modes. Detects sport type from URL path prefix.
+- **Team Logos / Avatars**: Optional `logo_local` and `logo_visitante` URL fields. Enabled for Football and Basketball. When no logo is provided, a deterministic CSS avatar with the team's initials and a unique hue (derived from the team name hash) is generated, and the browser dynamically queries TheSportsDB to load the badge.
+
 - **Countdown Timers**: Upcoming matches show a real-time countdown (`Starts in 02h 15m 10s`) that ticks every second via client-side `setInterval`.
-- **Search / Filter**: Client-side instant search on the public homepage filters match cards by team name or competition.
+- **Search / Filter + Sport Tabs**: Client-side instant search on the public homepage filters match cards by team name, competition, or sport. Sport tabs provide one-click filtering by sport type.
 - **Report System (Anti-Spam)**:
   - Located on the homepage match cards (under the "Watch Now" button for Live matches, split by Channel 1 / Channel 2).
   - Client side: `localStorage` cooldown of 5 minutes per match per channel.
@@ -44,6 +47,7 @@ Database: **Supabase** (PostgreSQL)
 | `ucaster_script_1` | text | Channel 1 script URL |
 | `ucaster_id_2` | text | Channel 2 ID |
 | `ucaster_script_2` | text | Channel 2 script URL |
+| `deporte` | text | Sport type, default `Football` (Football, Basketball, Tennis, Formula 1, MotoGP, IndyCar, Other) |
 | `created_at` | timestamptz | Auto-generated |
 
 ### Table: `reportes`
@@ -78,7 +82,7 @@ Database: **Supabase** (PostgreSQL)
 | POST | `/admin/add` | Admin | Add new match |
 | POST | `/admin/editar/:id` | Admin | Edit existing match |
 | POST | `/admin/eliminar/:id` | Admin | Delete match |
-| POST | `/api/partidos/sync` | Bearer | Scraper sync API |
+| POST | `/api/partidos/sync` | Bearer | Scraper sync API (accepts `deporte` field) |
 
 ## Deployment & Verification Status
 
@@ -92,6 +96,15 @@ Database: **Supabase** (PostgreSQL)
 2. Receive "OK" from user.
 3. Commit and push:
    - `git add .`
-   - `git commit -m "feat: complete UI rewrite, cookie auth, and stream reporting"`
+   - `git commit -m "feat: multi-sport support, sport tabs, auto scraper from tiroalpalo"`
    - `git push origin main`
 4. Confirm Netlify build status and test the production deployment live.
+
+## Scraper Usage
+```bash
+# Dry-run (default) — logs scraped data to console
+node scripts/sync-tiroalpalo.js --dry-run
+
+# Live mode — POSTs to sync API
+node scripts/sync-tiroalpalo.js --live --api-url https://your-site.netlify.app --token YOUR_SCRAPER_API_TOKEN
+```
