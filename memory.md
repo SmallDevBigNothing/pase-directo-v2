@@ -86,19 +86,14 @@ Database: **Supabase** (PostgreSQL)
 
 ## Deployment & Verification Status
 
-### Current Stage: Local Verification
-- **Testing instructions provided to user**: Guidelines on running the application locally via `npm run dev` in mock mode and using environment variables for Supabase connection.
-- **Git status**: Files modified (`server.js`, `package.json`, `memory.md`) are currently unstaged.
-- **Production release**: Awaiting user's explicit approval ("all OK") to proceed with staging, committing, and pushing code to Git which triggers Netlify's automatic build hook.
+### Current Stage: Pushed & Verified in Production
+- **Branch**: `test-execution-commands` has been committed and pushed to GitHub. A Pull Request is pending merge to `main`.
+- **Database Status**: The Supabase table constraint `partidos_estado_check` was updated via SQL migration to accept `'Live'` and `'Upcoming'` (previously limited to Spanish `'En Directo'` / `'Próximo Partido'`).
+- **Production Sync**: The scraper script was successfully run against the production URL (`https://futbol.topdev.vip`), inserting 4 active matches into the Supabase database.
+- **Netlify Configuration**: `SCRAPER_API_TOKEN` environment variable was configured via the Netlify API with value `secreto-pase-directo-2026`.
 
-### Required Actions Before Uploading
-1. User tests locally (verifying competition grouping, countdown, report button with localStorage cooldown, admin live toggles, and stream preview modal).
-2. Receive "OK" from user.
-3. Commit and push:
-   - `git add .`
-   - `git commit -m "feat: multi-sport support, sport tabs, auto scraper from tiroalpalo"`
-   - `git push origin main`
-4. Confirm Netlify build status and test the production deployment live.
+### Automation Setup
+- A GitHub Actions workflow (`.github/workflows/sync.yml`) is configured to run the scraper every 15 minutes automatically once the branch is merged and repository secrets (`API_URL` and `SCRAPER_API_TOKEN`) are configured on GitHub.
 
 ## Scraper Usage
 ```bash
@@ -106,5 +101,5 @@ Database: **Supabase** (PostgreSQL)
 node scripts/sync-tiroalpalo.js --dry-run
 
 # Live mode — POSTs to sync API
-node scripts/sync-tiroalpalo.js --live --api-url https://your-site.netlify.app --token YOUR_SCRAPER_API_TOKEN
+node scripts/sync-tiroalpalo.js --live --api-url https://futbol.topdev.vip --token secreto-pase-directo-2026
 ```
