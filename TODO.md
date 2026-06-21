@@ -1,0 +1,1 @@
+prompt: como hago con mistral con tareas programadas que todos los dias o cada pocos revise tiroalpaloof.net y mire que partidos haya vaya al enlace de ucaster (evitando los popups de anuncios) y ponga en la pagina auto
