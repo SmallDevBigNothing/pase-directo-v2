@@ -267,23 +267,25 @@ function escapeHtml(str) {
 const SHARED_CSS = `
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
     :root {
-        --bg-primary: #06060b;
-        --bg-secondary: #0d0d14;
-        --bg-card: #13131e;
-        --bg-card-hover: #1a1a2a;
+        --bg-primary: #05050a;
+        --bg-secondary: rgba(13, 13, 22, 0.65);
+        --bg-card: rgba(22, 22, 34, 0.45);
+        --bg-card-hover: rgba(30, 30, 48, 0.7);
         --accent: #e50914;
-        --accent-glow: rgba(229,9,20,0.35);
+        --accent-glow: rgba(229,9,20,0.4);
         --accent-secondary: #ff6b35;
-        --gradient: linear-gradient(135deg, #e50914 0%, #ff6b35 100%);
-        --text-primary: #eeeef2;
-        --text-secondary: #7a7a95;
-        --text-muted: #50506a;
-        --border: rgba(255,255,255,0.06);
-        --border-hover: rgba(255,255,255,0.12);
-        --glass: rgba(19,19,30,0.75);
-        --radius: 12px;
-        --radius-sm: 8px;
-        --transition: 0.25s cubic-bezier(0.4,0,0.2,1);
+        --gradient: linear-gradient(135deg, #ff1e27 0%, #ff7e40 100%);
+        --text-primary: #f3f3f6;
+        --text-secondary: #9494b0;
+        --text-muted: #5e5e7a;
+        --border: rgba(255, 255, 255, 0.05);
+        --border-hover: rgba(255, 255, 255, 0.12);
+        --glass: rgba(13, 13, 22, 0.7);
+        --radius: 16px;
+        --radius-sm: 10px;
+        --transition: 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+        --shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+        --shadow-glow: 0 0 20px rgba(229, 9, 20, 0.15);
     }
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     body {
@@ -292,13 +294,28 @@ const SHARED_CSS = `
         color: var(--text-primary);
         line-height: 1.6;
         -webkit-font-smoothing: antialiased;
+        position: relative;
+        min-height: 100vh;
+    }
+    body::before {
+        content: "";
+        position: fixed;
+        top: -10%;
+        left: -10%;
+        width: 120%;
+        height: 120%;
+        background: radial-gradient(circle at 15% 15%, rgba(229, 9, 20, 0.06) 0%, transparent 40%),
+                    radial-gradient(circle at 85% 85%, rgba(255, 107, 53, 0.05) 0%, transparent 45%),
+                    radial-gradient(circle at 50% 50%, rgba(13, 13, 22, 0.4) 0%, #05050a 100%);
+        z-index: -1;
+        pointer-events: none;
     }
     a { color: inherit; text-decoration: none; }
     @keyframes pulse-live {
         0%, 100% { opacity: 1; box-shadow: 0 0 0 0 var(--accent-glow); }
-        50% { opacity: 0.7; box-shadow: 0 0 0 8px transparent; }
+        50% { opacity: 0.6; box-shadow: 0 0 0 8px transparent; }
     }
-    @keyframes fade-in { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes fade-in { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
     .container { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
 `;
 
@@ -338,6 +355,18 @@ app.get('/', async (req, res) => {
     // Collect unique sports for tabs
     const allSports = [...new Set(matches.map(m => m.deporte || 'Other'))].sort();
 
+    // Sport icons map
+    const sportIcons = {
+        'Football': '⚽',
+        'Basketball': '🏀',
+        'Tennis': '🎾',
+        'Formula 1': '🏎️',
+        'MotoGP': '🏍️',
+        'IndyCar': '🏎️',
+        'Other': '🏆'
+    };
+    const getSportIcon = (s) => sportIcons[s] || '🏆';
+
     const renderCard = (m, isLive) => {
         let reportButtonsHtml = '';
         if (isLive) {
@@ -361,10 +390,15 @@ app.get('/', async (req, res) => {
             }
         }
 
+        const icon = getSportIcon(m.deporte || 'Football');
+
         return `
         <div class="match-card" data-sport="${escapeHtml(m.deporte || 'Other')}" style="animation: fade-in 0.4s ease both">
             <div class="match-card-header">
-                <span class="comp-tag">${escapeHtml(m.competicion || 'Other')}</span>
+                <div class="match-tags">
+                    <span class="sport-tag">${icon} ${escapeHtml(m.deporte || 'Other')}</span>
+                    <span class="comp-tag">${escapeHtml(m.competicion || 'Other')}</span>
+                </div>
                 ${isLive ? '<span class="live-badge"><span class="live-dot"></span>LIVE</span>' : ''}
             </div>
             <div class="match-teams">
@@ -415,14 +449,15 @@ app.get('/', async (req, res) => {
     <style>
         ${SHARED_CSS}
         header {
-            padding: 28px 0;
+            padding: 22px 0;
             border-bottom: 1px solid var(--border);
-            background: var(--bg-secondary);
+            background: var(--glass);
             position: sticky;
             top: 0;
             z-index: 100;
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            transition: background var(--transition);
         }
         .header-inner {
             display: flex;
@@ -430,23 +465,30 @@ app.get('/', async (req, res) => {
             align-items: center;
         }
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.6rem;
             font-weight: 800;
-            letter-spacing: -0.5px;
+            letter-spacing: -0.8px;
             background: var(--gradient);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             background-clip: text;
+            display: flex;
+            align-items: center;
+            gap: 8px;
         }
         .stats-bar {
             display: flex;
-            gap: 24px;
-            font-size: 0.85rem;
+            gap: 20px;
+            font-size: 0.8rem;
             color: var(--text-secondary);
+            background: rgba(255,255,255,0.02);
+            padding: 6px 14px;
+            border-radius: 20px;
+            border: 1px solid var(--border);
         }
         .stats-bar .stat-value { font-weight: 700; color: var(--text-primary); }
-        .stats-bar .live-count { color: var(--accent); }
-        main { padding: 32px 0 60px; }
+        .stats-bar .live-count { color: #ff3b47; text-shadow: 0 0 10px rgba(255, 59, 71, 0.3); }
+        main { padding: 40px 0 80px; }
         .section-header {
             display: flex;
             align-items: center;
@@ -456,73 +498,108 @@ app.get('/', async (req, res) => {
             border-bottom: 1px solid var(--border);
         }
         .section-header h2 {
-            font-size: 1.35rem;
-            font-weight: 700;
-            letter-spacing: -0.3px;
+            font-size: 1.4rem;
+            font-weight: 800;
+            letter-spacing: -0.4px;
+            color: var(--text-primary);
         }
         .section-header .live-icon {
             width: 10px; height: 10px;
             background: var(--accent);
             border-radius: 50%;
             animation: pulse-live 1.8s infinite;
+            box-shadow: 0 0 10px var(--accent);
         }
-        .comp-section { margin-bottom: 28px; }
+        .comp-section { margin-bottom: 36px; }
         .comp-heading {
-            font-size: 0.82rem;
-            font-weight: 600;
+            font-size: 0.78rem;
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
-            letter-spacing: 1.2px;
-            margin-bottom: 14px;
+            letter-spacing: 1.5px;
+            margin-bottom: 16px;
             padding-left: 2px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .comp-heading::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, var(--border) 0%, transparent 100%);
+            margin-left: 12px;
         }
         .match-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-            gap: 16px;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
         }
         .match-card {
             background: var(--bg-card);
             border: 1px solid var(--border);
             border-radius: var(--radius);
-            padding: 20px;
+            padding: 24px;
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             transition: transform var(--transition), border-color var(--transition), box-shadow var(--transition);
             display: flex;
             flex-direction: column;
-            gap: 16px;
+            gap: 20px;
+            position: relative;
         }
         .match-card:hover {
-            transform: translateY(-3px);
-            border-color: var(--border-hover);
-            box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+            transform: translateY(-5px);
+            border-color: rgba(255, 255, 255, 0.15);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 20px rgba(229, 9, 20, 0.1);
         }
         .match-card-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
+        .match-tags {
+            display: flex;
+            gap: 6px;
+            align-items: center;
+        }
+        .sport-tag {
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--accent-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            background: rgba(255, 107, 53, 0.08);
+            padding: 3px 8px;
+            border-radius: 4px;
+        }
         .comp-tag {
-            font-size: 0.7rem;
-            font-weight: 600;
+            font-size: 0.65rem;
+            font-weight: 700;
             color: var(--text-muted);
             text-transform: uppercase;
             letter-spacing: 0.8px;
-            background: rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.03);
             padding: 3px 8px;
             border-radius: 4px;
+            border: 1px solid var(--border);
         }
         .live-badge {
             display: flex;
             align-items: center;
             gap: 6px;
             font-size: 0.7rem;
-            font-weight: 700;
+            font-weight: 800;
             color: var(--accent);
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 1.2px;
+            background: rgba(229, 9, 20, 0.1);
+            padding: 4px 10px;
+            border-radius: 20px;
+            border: 1px solid rgba(229, 9, 20, 0.2);
         }
         .live-dot {
-            width: 8px; height: 8px;
+            width: 6px; height: 6px;
             background: var(--accent);
             border-radius: 50%;
             animation: pulse-live 1.8s infinite;
@@ -532,49 +609,70 @@ app.get('/', async (req, res) => {
             align-items: center;
             justify-content: center;
             gap: 16px;
+            padding: 10px 0;
         }
         .team {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 8px;
+            gap: 10px;
             flex: 1;
             min-width: 0;
         }
         .team-logo {
-            width: 48px; height: 48px;
+            width: 56px; height: 56px;
             border-radius: 50%;
             object-fit: contain;
-            background: rgba(255,255,255,0.05);
-            padding: 4px;
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border);
+            padding: 6px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            transition: transform var(--transition);
+        }
+        .match-card:hover .team-logo {
+            transform: scale(1.05);
         }
         .team-avatar {
-            width: 48px; height: 48px;
+            width: 56px; height: 56px;
             border-radius: 50%;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 0.75rem;
-            font-weight: 700;
+            font-size: 0.85rem;
+            font-weight: 800;
             color: white;
             letter-spacing: 0.5px;
             flex-shrink: 0;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: transform var(--transition);
+        }
+        .match-card:hover .team-avatar {
+            transform: scale(1.05);
         }
         .team-name {
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.92rem;
+            font-weight: 700;
             text-align: center;
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
             max-width: 100%;
+            color: var(--text-primary);
         }
         .vs {
-            font-size: 0.75rem;
-            font-weight: 700;
+            font-size: 0.72rem;
+            font-weight: 800;
             color: var(--text-muted);
             text-transform: uppercase;
             flex-shrink: 0;
+            background: rgba(255,255,255,0.02);
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid var(--border);
         }
         .match-meta {
             text-align: center;
@@ -583,17 +681,28 @@ app.get('/', async (req, res) => {
         }
         .countdown {
             font-variant-numeric: tabular-nums;
-            font-weight: 600;
+            font-weight: 700;
             color: var(--accent-secondary);
             letter-spacing: 0.5px;
-        }
-        .match-action { text-align: center; }
-        .btn {
+            background: rgba(255, 107, 53, 0.08);
+            padding: 4px 12px;
+            border-radius: 20px;
             display: inline-block;
-            padding: 10px 24px;
+        }
+        .match-action { 
+            text-align: center; 
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            margin-top: auto;
+        }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 11px 24px;
             border-radius: var(--radius-sm);
-            font-size: 0.85rem;
-            font-weight: 600;
+            font-size: 0.9rem;
+            font-weight: 700;
             transition: all var(--transition);
             border: none;
             cursor: pointer;
@@ -602,78 +711,86 @@ app.get('/', async (req, res) => {
         .btn-live {
             background: var(--gradient);
             color: white;
-            box-shadow: 0 4px 16px var(--accent-glow);
+            box-shadow: 0 4px 16px rgba(255, 30, 39, 0.25);
         }
         .btn-live:hover {
-            box-shadow: 0 6px 24px var(--accent-glow);
-            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(255, 30, 39, 0.45);
+            transform: translateY(-1.5px);
         }
         .btn-upcoming {
-            background: rgba(255,255,255,0.04);
+            background: rgba(255,255,255,0.02);
             color: var(--text-muted);
             cursor: default;
             border: 1px solid var(--border);
         }
-        .section-divider { margin: 40px 0; border: none; border-top: 1px solid var(--border); }
+        .section-divider { margin: 48px 0; border: none; border-top: 1px solid var(--border); }
         .empty-state {
             text-align: center;
             color: var(--text-muted);
             font-style: italic;
-            padding: 32px 0;
-            font-size: 0.9rem;
+            padding: 48px 0;
+            font-size: 0.95rem;
         }
         .search-bar {
-            margin-bottom: 28px;
+            margin-bottom: 32px;
             position: relative;
         }
         .search-bar input {
             width: 100%;
-            padding: 12px 16px 12px 44px;
+            padding: 14px 16px 14px 48px;
             border-radius: var(--radius);
             border: 1px solid var(--border);
             background: var(--bg-card);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
             color: var(--text-primary);
-            font-size: 0.9rem;
+            font-size: 0.95rem;
             font-family: inherit;
             outline: none;
-            transition: border-color var(--transition);
+            transition: all var(--transition);
         }
         .search-bar input::placeholder { color: var(--text-muted); }
-        .search-bar input:focus { border-color: var(--accent); }
+        .search-bar input:focus { 
+            border-color: rgba(255, 30, 39, 0.4); 
+            box-shadow: 0 0 0 3px rgba(255, 30, 39, 0.15), 0 8px 30px rgba(0, 0, 0, 0.3);
+            background: var(--bg-card-hover);
+        }
         .search-bar .search-icon {
             position: absolute;
-            left: 14px;
+            left: 16px;
             top: 50%;
             transform: translateY(-50%);
             color: var(--text-muted);
-            font-size: 1rem;
+            font-size: 1.1rem;
         }
         footer {
             text-align: center;
-            padding: 24px;
+            padding: 32px;
             color: var(--text-muted);
-            font-size: 0.75rem;
+            font-size: 0.8rem;
             border-top: 1px solid var(--border);
+            margin-top: 40px;
+            background: rgba(0,0,0,0.2);
         }
         @media (max-width: 640px) {
             .match-grid { grid-template-columns: 1fr; }
             .stats-bar { display: none; }
-            .logo { font-size: 1.25rem; }
+            .logo { font-size: 1.35rem; }
             header { padding: 18px 0; }
-            .section-header h2 { font-size: 1.15rem; }
+            .section-header h2 { font-size: 1.2rem; }
             .sport-tabs { gap: 6px; }
-            .sport-tab { padding: 6px 12px; font-size: 0.72rem; }
+            .sport-tab { padding: 6px 14px; font-size: 0.76rem; }
         }
         .sport-tabs {
             display: flex;
-            gap: 8px;
-            margin-bottom: 20px;
+            gap: 10px;
+            margin-bottom: 28px;
             flex-wrap: wrap;
         }
         .sport-tab {
-            padding: 7px 16px;
-            border-radius: 20px;
-            font-size: 0.78rem;
+            padding: 8px 18px;
+            border-radius: 30px;
+            font-size: 0.82rem;
             font-weight: 600;
             cursor: pointer;
             border: 1px solid var(--border);
@@ -682,49 +799,54 @@ app.get('/', async (req, res) => {
             transition: all var(--transition);
             font-family: inherit;
             letter-spacing: 0.3px;
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
         }
         .sport-tab:hover {
             border-color: var(--border-hover);
             color: var(--text-primary);
-            background: var(--bg-card-hover);
+            transform: translateY(-1px);
         }
         .sport-tab.active {
             background: var(--gradient);
             color: white;
             border-color: transparent;
-            box-shadow: 0 2px 12px var(--accent-glow);
+            box-shadow: 0 4px 15px rgba(255, 30, 39, 0.35);
         }
         .card-report-actions {
             display: flex;
             gap: 8px;
-            margin-top: 12px;
+            margin-top: 4px;
             justify-content: center;
             flex-wrap: wrap;
         }
         .btn-report-card {
-            background: rgba(229, 9, 20, 0.08);
+            flex: 1;
+            min-width: 100px;
+            background: rgba(229, 9, 20, 0.06);
             color: #ef4444;
-            border: 1px solid rgba(229, 9, 20, 0.2);
-            padding: 5px 8px;
-            font-size: 0.7rem;
-            font-weight: 600;
+            border: 1px solid rgba(229, 9, 20, 0.15);
+            padding: 6px 10px;
+            font-size: 0.72rem;
+            font-weight: 700;
             border-radius: var(--radius-sm);
             cursor: pointer;
             transition: all var(--transition);
             font-family: inherit;
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 4px;
         }
         .btn-report-card:hover {
-            background: rgba(229, 9, 20, 0.18);
-            border-color: rgba(229, 9, 20, 0.4);
+            background: rgba(229, 9, 20, 0.14);
+            border-color: rgba(229, 9, 20, 0.35);
             color: #ff6b6b;
         }
         .btn-report-card:disabled {
-            opacity: 0.5;
+            opacity: 0.4;
             cursor: not-allowed;
-            background: rgba(255,255,255,0.02);
+            background: rgba(255,255,255,0.01);
             color: var(--text-muted);
             border-color: var(--border);
         }
@@ -733,21 +855,21 @@ app.get('/', async (req, res) => {
             bottom: 24px;
             right: 24px;
             z-index: 1001;
-            background: rgba(20,20,20,0.95);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(15,15,25,0.95);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255,255,255,0.08);
             color: #eee;
-            padding: 12px 20px;
+            padding: 14px 24px;
             border-radius: var(--radius-sm);
-            font-size: 0.82rem;
-            font-weight: 500;
-            max-width: 300px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            max-width: 320px;
             opacity: 0;
             transform: translateY(8px);
             transition: all var(--transition);
             pointer-events: none;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            box-shadow: 0 12px 40px rgba(0,0,0,0.6);
         }
         .report-toast.show { opacity: 1; transform: translateY(0); pointer-events: auto; }
         .report-toast.success { border-color: rgba(34, 197, 94, 0.4); }
@@ -757,7 +879,7 @@ app.get('/', async (req, res) => {
 <body>
     <header>
         <div class="container header-inner">
-            <div class="logo">Pase Directo</div>
+            <div class="logo">⚡ Pase Directo</div>
             <div class="stats-bar">
                 <span><span class="stat-value live-count">${liveMatches.length}</span> Live</span>
                 <span><span class="stat-value">${upcomingMatches.length}</span> Upcoming</span>
@@ -773,8 +895,8 @@ app.get('/', async (req, res) => {
 
         ${allSports.length > 1 ? `
         <div class="sport-tabs" id="sport-tabs">
-            <button class="sport-tab active" data-filter="all">All Sports</button>
-            ${allSports.map(s => `<button class="sport-tab" data-filter="${escapeHtml(s)}">${escapeHtml(s)}</button>`).join('')}
+            <button class="sport-tab active" data-filter="all">🌐 All Sports</button>
+            ${allSports.map(s => `<button class="sport-tab" data-filter="${escapeHtml(s)}">${getSportIcon(s)} ${escapeHtml(s)}</button>`).join('')}
         </div>` : ''}
 
         <section id="live-section">
@@ -985,30 +1107,24 @@ app.get('/partido/:id', async (req, res) => {
         return res.status(404).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Not Found</title><style>body{font-family:'Inter',sans-serif;background:#06060b;color:#eee;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;flex-direction:column;gap:16px}a{color:#e50914;font-weight:600}</style></head><body><h2>Match not found or not live.</h2><a href="/">Back to home</a></body></html>`);
     }
 
-    // Build Ucaster script blocks
-    const scriptBlocks = [];
-    if (match.ucaster_id_1 && match.ucaster_script_1) {
-        scriptBlocks.push(`
-            <script type="text/javascript">
-                width = 1920; height = 1080;
-                channel = '${match.ucaster_id_1}';
-                g = '1';
-            </script>
-            <script type="text/javascript" src="${match.ucaster_script_1}"></script>
+    // Build Ucaster sandboxed iframe blocks
+    const iframeBlocks = [];
+    if (match.ucaster_id_1) {
+        iframeBlocks.push(`
+            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080"
+                    width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
+                    allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
     }
-    if (match.ucaster_id_2 && match.ucaster_script_2) {
-        scriptBlocks.push(`
-            <script type="text/javascript">
-                width = 1920; height = 1080;
-                channel = '${match.ucaster_id_2}';
-                g = '1';
-            </script>
-            <script type="text/javascript" src="${match.ucaster_script_2}"></script>
+    if (match.ucaster_id_2) {
+        iframeBlocks.push(`
+            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080"
+                    width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
+                    allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
     }
 
-    const hasMultiSource = scriptBlocks.length > 1;
+    const hasMultiSource = iframeBlocks.length > 1;
 
     const html = `<!DOCTYPE html>
 <html lang="en">
@@ -1061,13 +1177,13 @@ app.get('/partido/:id', async (req, res) => {
             <button class="source-btn" onclick="switchSource(1, this)">Source 2</button>
         </div>` : ''}
         <div id="video-container">
-            ${scriptBlocks[0] || '<p style="color:#555;text-align:center;margin-top:40vh">No stream source configured.</p>'}
+            ${iframeBlocks[0] || '<p style="color:#555;text-align:center;margin-top:40vh">No stream source configured.</p>'}
         </div>
     </div>
 
     ${hasMultiSource ? `
     <script>
-        var sources = ${JSON.stringify(scriptBlocks)};
+        var sources = ${JSON.stringify(iframeBlocks)};
         var activeSource = 0;
         function switchSource(index, btn) {
             activeSource = index;
@@ -1075,11 +1191,6 @@ app.get('/partido/:id', async (req, res) => {
             btn.classList.add('active');
             var container = document.getElementById('video-container');
             container.innerHTML = sources[index];
-            container.querySelectorAll('script').forEach(function(oldScript) {
-                var newScript = document.createElement('script');
-                if (oldScript.src) { newScript.src = oldScript.src; } else { newScript.textContent = oldScript.textContent; }
-                oldScript.replaceWith(newScript);
-            });
         }
     </script>` : '<script>var activeSource = 0;</script>'}
 </body>
@@ -1958,15 +2069,15 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
         return res.status(404).send('Match not found.');
     }
 
-    const scriptBlocks = [];
-    if (match.ucaster_id_1 && match.ucaster_script_1) {
-        scriptBlocks.push(`<script type="text/javascript">width=1920;height=1080;channel='${match.ucaster_id_1}';g='1';</script><script type="text/javascript" src="${match.ucaster_script_1}"></script>`);
+    const iframeBlocks = [];
+    if (match.ucaster_id_1) {
+        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
-    if (match.ucaster_id_2 && match.ucaster_script_2) {
-        scriptBlocks.push(`<script type="text/javascript">width=1920;height=1080;channel='${match.ucaster_id_2}';g='1';</script><script type="text/javascript" src="${match.ucaster_script_2}"></script>`);
+    if (match.ucaster_id_2) {
+        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
 
-    const hasMulti = scriptBlocks.length > 1;
+    const hasMulti = iframeBlocks.length > 1;
 
     const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
     html,body{margin:0;padding:0;height:100%;background:#000;overflow:hidden;font-family:sans-serif}
@@ -1977,8 +2088,8 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
     .sb button.active{background:#e50914;border-color:#e50914}
     </style></head><body>
     ${hasMulti?'<div class="sb"><button class="active" onclick="sw(0,this)">Source 1</button><button onclick="sw(1,this)">Source 2</button></div>':''}
-    <div id="vc">${scriptBlocks[0]||'<p style="color:#555;text-align:center;margin-top:40%">No stream configured.</p>'}</div>
-    ${hasMulti?`<script>var S=${JSON.stringify(scriptBlocks)};function sw(i,b){document.querySelectorAll('.sb button').forEach(function(x){x.classList.remove('active')});b.classList.add('active');var c=document.getElementById('vc');c.innerHTML=S[i];c.querySelectorAll('script').forEach(function(o){var n=document.createElement('script');if(o.src)n.src=o.src;else n.textContent=o.textContent;o.replaceWith(n)})}</script>`:''}
+    <div id="vc">${iframeBlocks[0]||'<p style="color:#555;text-align:center;margin-top:40%">No stream configured.</p>'}</div>
+    ${hasMulti?`<script>var S=${JSON.stringify(iframeBlocks)};function sw(i,b){document.querySelectorAll('.sb button').forEach(function(x){x.classList.remove('active')});b.classList.add('active');var c=document.getElementById('vc');c.innerHTML=S[i];}</script>`:''}
     </body></html>`;
 
     res.send(html);
@@ -2080,6 +2191,40 @@ app.post('/api/partidos/sync', async (req, res) => {
 
     // Map legacy Spanish status values to English
     const statusMap = { 'En Directo': 'Live', 'Próximo Partido': 'Upcoming' };
+
+    // Stale match cleanup: Delete matches in database that are currently 'Live',
+    // have a ucaster_id_1 or ucaster_id_2 (meaning they were automatically scraped),
+    // and are NOT in the incoming payload.
+    try {
+        const incomingMatchKeys = new Set(partidos.map(p => `${(p.local || '').toLowerCase()}||${(p.visitante || '').toLowerCase()}`));
+        const { data: dbMatches, error: fetchError } = await supabase
+            .from('partidos')
+            .select('id, local, visitante, ucaster_id_1, ucaster_id_2')
+            .eq('estado', 'Live');
+
+        if (!fetchError && dbMatches) {
+            const matchesToDelete = dbMatches.filter(m => {
+                const isScraped = !!m.ucaster_id_1 || !!m.ucaster_id_2;
+                const key = `${(m.local || '').toLowerCase()}||${(m.visitante || '').toLowerCase()}`;
+                return isScraped && !incomingMatchKeys.has(key);
+            });
+
+            if (matchesToDelete.length > 0) {
+                const idsToDelete = matchesToDelete.map(m => m.id);
+                const { error: deleteError } = await supabase
+                    .from('partidos')
+                    .delete()
+                    .in('id', idsToDelete);
+                if (deleteError) {
+                    console.error('Error deleting stale matches:', deleteError);
+                } else {
+                    console.log(`Deleted ${idsToDelete.length} stale live matches.`);
+                }
+            }
+        }
+    } catch (err) {
+        console.error('Stale match cleanup error:', err);
+    }
 
     const results = [];
     for (const p of partidos) {
