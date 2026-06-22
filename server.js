@@ -335,8 +335,8 @@ app.get('/', async (req, res) => {
         return res.status(500).send('Error loading matches.');
     }
 
-    const liveMatches = matches.filter(m => m.estado === 'Live');
-    const upcomingMatches = matches.filter(m => m.estado === 'Upcoming');
+    const liveMatches = matches.filter(m => m.estado === 'Live' && (m.ucaster_id_1 || m.ucaster_id_2));
+    const upcomingMatches = matches.filter(m => m.estado === 'Upcoming' || (m.estado === 'Live' && !m.ucaster_id_1 && !m.ucaster_id_2));
 
     // Group by competition
     const groupByComp = (arr) => {
@@ -1103,8 +1103,8 @@ app.get('/partido/:id', async (req, res) => {
         .eq('estado', 'Live')
         .single();
 
-    if (error || !match) {
-        return res.status(404).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Not Found</title><style>body{font-family:'Inter',sans-serif;background:#06060b;color:#eee;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;flex-direction:column;gap:16px}a{color:#e50914;font-weight:600}</style></head><body><h2>Match not found or not live.</h2><a href="/">Back to home</a></body></html>`);
+    if (error || !match || (!match.ucaster_id_1 && !match.ucaster_id_2)) {
+        return res.status(404).send(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Not Found</title><style>body{font-family:'Inter',sans-serif;background:#06060b;color:#eee;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;flex-direction:column;gap:16px}a{color:#e50914;font-weight:600}</style></head><body><h2>Match not found, not live, or missing stream sources.</h2><a href="/">Back to home</a></body></html>`);
     }
 
     // Build Ucaster sandboxed iframe blocks
@@ -1239,10 +1239,10 @@ app.post('/api/partidos/:id/report', async (req, res) => {
 
 // Toggle match status (Live <-> Upcoming)
 app.post('/api/partidos/:id/toggle-status', requireAuth, async (req, res) => {
-    // Get current status
+    // Get current status and channels
     const { data: match, error: fetchErr } = await supabase
         .from('partidos')
-        .select('estado')
+        .select('estado, ucaster_id_1, ucaster_id_2')
         .eq('id', req.params.id)
         .single();
 
@@ -1251,6 +1251,12 @@ app.post('/api/partidos/:id/toggle-status', requireAuth, async (req, res) => {
     }
 
     const newStatus = match.estado === 'Live' ? 'Upcoming' : 'Live';
+
+    // Verify stream sources are present before setting status to Live
+    if (newStatus === 'Live' && !match.ucaster_id_1 && !match.ucaster_id_2) {
+        return res.status(400).json({ success: false, error: 'Cannot set match to Live without any stream sources configured.' });
+    }
+
     const { error } = await supabase
         .from('partidos')
         .update({ estado: newStatus })
@@ -2103,11 +2109,13 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
 app.post('/admin/add', requireAuth, async (req, res) => {
     const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
 
+    const resolvedStatus = (estado === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : (estado || 'Upcoming');
+
     const { error } = await supabase.from('partidos').insert([{
         local: local || null,
         visitante: visitante || null,
         hora: hora || null,
-        estado: estado || 'Upcoming',
+        estado: resolvedStatus,
         competicion: competicion || 'Other',
         deporte: deporte || 'Football',
         ucaster_id_1: ucaster_id_1 || null,
@@ -2129,12 +2137,14 @@ app.post('/admin/add', requireAuth, async (req, res) => {
 app.post('/admin/editar/:id', requireAuth, async (req, res) => {
     const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
 
+    const resolvedStatus = (estado === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : (estado || 'Upcoming');
+
     const { error } = await supabase.from('partidos')
         .update({
             local: local || null,
             visitante: visitante || null,
             hora: hora || null,
-            estado: estado || 'Upcoming',
+            estado: resolvedStatus,
             competicion: competicion || 'Other',
             deporte: deporte || 'Football',
             ucaster_id_1: ucaster_id_1 || null,
@@ -2233,6 +2243,7 @@ app.post('/api/partidos/sync', async (req, res) => {
         if (!local) continue;
 
         const normalizedStatus = statusMap[estado] || estado || 'Upcoming';
+        const resolvedStatus = (normalizedStatus === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : normalizedStatus;
 
         const { data: existing, error: searchError } = await supabase
             .from('partidos')
@@ -2249,7 +2260,7 @@ app.post('/api/partidos/sync', async (req, res) => {
         const matchData = {
             local, visitante: visitante || '',
             hora: hora || null,
-            estado: normalizedStatus,
+            estado: resolvedStatus,
             competicion: competicion || 'Other',
             deporte: deporte || 'Football',
             ucaster_id_1: ucaster_id_1 || null,
