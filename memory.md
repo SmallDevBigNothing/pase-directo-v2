@@ -1,4 +1,4 @@
-# Memory — Pase Directo V4.0 (Multi-Sport + Auto Scraper)
+# Memory — Pase Directo V4.1 (Multi-Sport + Sandboxed Ad-Blocking)
 
 ## Project
 Deployment: **Netlify** (Functions)
@@ -7,27 +7,30 @@ Database: **Supabase** (PostgreSQL)
 ## Architecture & Technical Decisions
 - **Node.js + Express (Netlify Functions + serverless-http)**: Express app wrapped via `serverless-http` in `netlify/functions/server.js`. All routes go through `netlify.toml` redirect.
 - **Persistent database in Supabase**: Full CRUD on the `partidos` table plus a new `reportes` table for user-submitted stream-down reports.
+- **Sandboxed Player (Ad-Blocking)**: Completely bypasses remote script executions of `hucaster.js` (which loaded intrusive overlay/popup ads). Instead, the player now generates a sandboxed `<iframe>` pointing directly to the channel embed on `new.lastzone.top`.
+  * Sandbox rules: `sandbox="allow-scripts allow-same-origin allow-presentation"`
+  * This blocks popups, popunders, new tabs, and top-level redirection while keeping HLS stream playback intact.
 - **Dual Stream Source (Ucaster)**: Two channels per match (`ucaster_id_1`, `ucaster_script_1`, `ucaster_id_2`, `ucaster_script_2`) with a dynamic source selector in the player view.
+- **No-Stream Status Logic**: To prevent users from navigating to broken empty player views:
+  * Matches with no active streams configured (both `ucaster_id` columns are null) are forced to `'Upcoming'` state on database inserts, updates, and toggle-status triggers.
+  * Homepage dynamically filters out live matches without active streams, treating them as `Upcoming`.
+  * Accessing `/partido/:id` direct URLs for streamless matches returns a 404.
 - **Competition Grouping**: Matches are grouped by competition (LaLiga, Champions League, etc.) on the public homepage using the `competicion` column.
 - **Multi-Sport Support**: Not just football — supports Basketball, Tennis, Formula 1, MotoGP, IndyCar, and Other via the `deporte` column. Sport filter tabs on homepage allow instant filtering.
-- **Automatic Scraper (`scripts/sync-tiroalpalo.js`)**: Node.js script (zero dependencies) that scrapes `tiroalpalof.org/directo` for live matches, extracts Ucaster stream codes from `new.lastzone.top` links, and POSTs to `/api/partidos/sync`. Supports `--dry-run` (default) and `--live` modes. Detects sport type from URL path prefix.
-- **Team Logos / Avatars**: Optional `logo_local` and `logo_visitante` URL fields. Enabled for Football and Basketball. When no logo is provided, a deterministic CSS avatar with the team's initials and a unique hue (derived from the team name hash) is generated, and the browser dynamically queries TheSportsDB to load the badge.
-
-- **Countdown Timers**: Upcoming matches show a real-time countdown (`Starts in 02h 15m 10s`) that ticks every second via client-side `setInterval`.
-- **Search / Filter + Sport Tabs**: Client-side instant search on the public homepage filters match cards by team name, competition, or sport. Sport tabs provide one-click filtering by sport type.
-- **Report System (Anti-Spam)**:
-  - Located on the homepage match cards (under the "Watch Now" button for Live matches, split by Channel 1 / Channel 2).
-  - Client side: `localStorage` cooldown of 5 minutes per match per channel.
-  - Server side: Max 50 reports per match+channel (silently capped).
-  - Reports are stored in the `reportes` table with `partido_id`, `canal` (1 or 2), and `created_at`.
-- **Admin Dashboard**:
-  - Stats cards (live count, upcoming count, total reports).
-  - AJAX toggle switches to flip status (`Live` ↔ `Upcoming`) without page reload.
-  - Reports inbox with per-match "Clear" button.
-  - Stream preview modal (opens player in an iframe via `/admin/preview/:id`).
-  - Full form for adding/editing matches with competition, logo URLs, and Ucaster fields.
-- **Stateless Cookie Auth (Serverless-Safe)**: Replaces `express-session`. Uses Node.js native `crypto` module with HMAC-SHA256 signed cookies. No external dependencies required. Survives serverless cold starts indefinitely. Cookie name: `pd_admin`, max-age: 7 days.
-- **All UI in English**: Every interface element (homepage, player, admin login, admin panel) is in English.
+- **Optimized Automatic Scraper (`scripts/sync-tiroalpalo.js`)**:
+  * Scrapes `tiroalpalof.org/directo` for live matches, extracts Ucaster codes from `new.lastzone.top` links, and POSTs to `/api/partidos/sync`.
+  * **Timezone Offset Patch**: Uses the Madrid timezone to dynamically shift early morning matches (0:00–5:00) to the next calendar date only if scraping in the afternoon/evening of the previous day, preventing incorrect offsets when run in the morning.
+  * **Concurrent Scrapes**: Fetches detail pages concurrently (limit of 3 workers) to run faster and prevent sequential timeouts.
+  * **Robust Regex**: Regex parser allows unquoted, single-quoted, and absolute link href attributes.
+  * **Stale Match Auto-Deletion**: When the scraper posts updates, any `Live` match in the database with configured channels that is missing from the incoming scraper payload is deleted automatically to keep pages clean.
+- **Webpage Aesthetics (Premium Revamp)**:
+  * Sticky glassmorphism header (`backdrop-filter: blur(20px)`) and stats indicator bar.
+  * Radial gradient ambient glows (red/orange) overlaid on a deep dark layout.
+  * Glassmorphic cards with responsive sizes, hover scale effects, and glows.
+  * Sport-specific badge indicators (`⚽ Football`, `🏀 Basketball`, `🏎️ Formula 1`, etc.).
+  * Stateless Cookie Auth (`crypto` HMAC-SHA256, serverless-safe).
+  * Stateless cookie name: `pd_admin`, max-age: 7 days.
+- **All UI in English**: Every interface element is in English.
 - **Security**: Admin password from `ADMIN_PASSWORD` env var (default `AdminFutbol2026`).
 
 ## Database Schema (Supabase)
@@ -37,7 +40,7 @@ Database: **Supabase** (PostgreSQL)
 |---|---|---|
 | `id` | uuid | Primary key, auto-generated |
 | `local` | text | Home team name |
-| `visitante` | text | Away team name |
+| `visitante` | text | Away team name (optional for solo sports) |
 | `hora` | timestamptz | Match date/time |
 | `estado` | text | `Live` or `Upcoming` |
 | `competicion` | text | Competition name, default `Other` |
@@ -69,27 +72,26 @@ Database: **Supabase** (PostgreSQL)
 ## API Endpoints
 | Method | Path | Auth | Description |
 |---|---|---|---|
-| GET | `/` | Public | Homepage with live/upcoming matches |
-| GET | `/partido/:id` | Public | Player page (live matches only) |
+| GET | `/` | Public | Homepage with live/upcoming matches (filtered by active streams) |
+| GET | `/partido/:id` | Public | Player page (live matches with active streams only) |
 | POST | `/api/partidos/:id/report` | Public | Report a stream as down |
-| POST | `/api/partidos/:id/toggle-status` | Admin | Toggle Live/Upcoming via AJAX |
+| POST | `/api/partidos/:id/toggle-status` | Admin | Toggle Live/Upcoming via AJAX (blocked if streamless) |
 | POST | `/api/partidos/:id/clear-reports` | Admin | Clear all reports for a match |
 | GET | `/admin/login` | Public | Login page |
 | POST | `/admin/login` | Public | Login action |
 | GET | `/admin/logout` | Admin | Logout action |
 | GET | `/admin` | Admin | Dashboard |
 | GET | `/admin/preview/:id` | Admin | Stream preview (iframe) |
-| POST | `/admin/add` | Admin | Add new match |
-| POST | `/admin/editar/:id` | Admin | Edit existing match |
+| POST | `/admin/add` | Admin | Add new match (forces `Upcoming` if streamless) |
+| POST | `/admin/editar/:id` | Admin | Edit existing match (forces `Upcoming` if streamless) |
 | POST | `/admin/eliminar/:id` | Admin | Delete match |
-| POST | `/api/partidos/sync` | Bearer | Scraper sync API (accepts `deporte` field) |
+| POST | `/api/partidos/sync` | Bearer | Scraper sync API (forces `Upcoming` if streamless, deletes ended matches) |
 
 ## Deployment & Verification Status
 
-### Current Stage: Pushed & Verified in Production
-- **Branch**: `test-execution-commands` has been committed and pushed to GitHub. A Pull Request is pending merge to `main`.
-- **Database Status**: The Supabase table constraint `partidos_estado_check` was updated via SQL migration to accept `'Live'` and `'Upcoming'` (previously limited to Spanish `'En Directo'` / `'Próximo Partido'`).
-- **Production Sync**: The scraper script was successfully run against the production URL (`https://futbol.topdev.vip`), inserting 4 active matches into the Supabase database.
+### Current Stage: Local Commited & Pushed
+- **Branch**: `pull-and-review-changes` has been committed and pushed to GitHub. A Pull Request is pending merge to `main`.
+- **Database Status**: The Supabase table constraint `partidos_estado_check` is configured to accept `'Live'` and `'Upcoming'`.
 - **Netlify Configuration**: `SCRAPER_API_TOKEN` environment variable was configured via the Netlify API with value `secreto-pase-directo-2026`.
 
 ### Automation Setup
