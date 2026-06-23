@@ -183,8 +183,25 @@ function buildIsoDatetime(timeStr) {
   const [y, m, d] = nowMadrid.split('-').map(Number);
   let date = new Date(Date.UTC(y, m - 1, d));
 
-  // If time is very early (0:00–5:00), assume it belongs to tomorrow
-  if (hours >= 0 && hours <= 5) {
+  // Determine current hour in Europe/Madrid to avoid tomorrow shifts when running in the morning
+  const now = new Date();
+  const formatter = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'Europe/Madrid',
+    hour: 'numeric',
+    hour12: false
+  });
+  const parts = formatter.formatToParts(now);
+  let currentMadridHour = 0;
+  parts.forEach(p => {
+    if (p.type === 'hour') {
+      currentMadridHour = Number(p.value);
+    }
+  });
+  if (currentMadridHour === 24) currentMadridHour = 0;
+
+  // If time is very early (0:00–5:00) and we're scraping in the afternoon/evening (>= 12:00)
+  // of the previous day, assume it belongs to tomorrow.
+  if (hours >= 0 && hours <= 5 && currentMadridHour >= 12) {
     date.setUTCDate(date.getUTCDate() + 1);
   }
 
@@ -196,7 +213,7 @@ function buildIsoDatetime(timeStr) {
   const utcDate = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay, hours, minutes, 0));
 
   // Format this date in Madrid timezone to see what wall-clock time it gets
-  const formatter = new Intl.DateTimeFormat('en-US', {
+  const utcFormatter = new Intl.DateTimeFormat('en-US', {
     timeZone: 'Europe/Madrid',
     year: 'numeric',
     month: 'numeric',
@@ -207,9 +224,9 @@ function buildIsoDatetime(timeStr) {
     hour12: false
   });
 
-  const parts = formatter.formatToParts(utcDate);
+  const utcParts = utcFormatter.formatToParts(utcDate);
   const val = {};
-  parts.forEach(p => { val[p.type] = Number(p.value); });
+  utcParts.forEach(p => { val[p.type] = Number(p.value); });
 
   const madridHour = val.hour === 24 ? 0 : val.hour;
   const madridWallClock = new Date(Date.UTC(val.year, val.month - 1, val.day, madridHour, val.minute, val.second));
@@ -232,16 +249,27 @@ function parseListingPage(html) {
   // Match <li> items inside the tag category list.
   // We look for <a href="..."> with text content that represents a match.
   // The regex captures href and the inner text (which may be inside <h3> etc.).
-  const linkRe = /<a\s+[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+  const linkRe = /<a\s+[^>]*href=["']?([^"'\s>]+)["']?[^>]*>([\s\S]*?)<\/a>/gi;
   let m;
 
   while ((m = linkRe.exec(html)) !== null) {
     const href = m[1];
     const innerHtml = m[2];
 
+    // Normalize href to be relative if it starts with the base domain
+    let cleanHref = href;
+    if (href.startsWith('http://') || href.startsWith('https://')) {
+      try {
+        const urlObj = new URL(href);
+        cleanHref = urlObj.pathname;
+      } catch (err) {
+        continue;
+      }
+    }
+
     // Only consider links whose path starts with a known sport prefix
     // (they look like "/futbol/...", "/indycar/...", etc.)
-    if (!href.startsWith('/') || href === '/directo') continue;
+    if (!cleanHref.startsWith('/') || cleanHref === '/directo') continue;
 
     // Strip HTML tags from inner content to get plain text title
     const title = innerHtml.replace(/<[^>]+>/g, '').trim();
@@ -250,7 +278,7 @@ function parseListingPage(html) {
     // Quick sanity check: must contain a time like "(HH:MM)" to be a match
     if (!/\(\d{1,2}:\d{2}\)/.test(title)) continue;
 
-    matches.push({ href, title });
+    matches.push({ href: cleanHref, title });
   }
 
   // Deduplicate by href (some links may appear twice in navigation)
@@ -292,6 +320,33 @@ function parseDetailPage(html) {
 }
 
 // ---------------------------------------------------------------------------
+// Concurrency mapping helper
+// ---------------------------------------------------------------------------
+
+/**
+ * Concurrently maps an array of items using an async function,
+ * limiting active operations to `concurrency`.
+ */
+async function mapConcurrent(items, concurrency, fn) {
+  const results = [];
+  const copies = items.map((item, index) => ({ item, index }));
+  const workers = Array(concurrency).fill(null).map(async () => {
+    while (copies.length > 0) {
+      const task = copies.shift();
+      if (!task) break;
+      try {
+        const res = await fn(task.item);
+        results[task.index] = res;
+      } catch (err) {
+        log('ERROR', `Error processing item: ${err.message}`);
+      }
+    }
+  });
+  await Promise.all(workers);
+  return results.filter(r => r !== undefined);
+}
+
+// ---------------------------------------------------------------------------
 // Main pipeline
 // ---------------------------------------------------------------------------
 
@@ -321,9 +376,9 @@ async function main() {
 
   // ------ Step 2: Fetch each match detail page for streams ------
 
-  const partidos = [];
+  log('SCRAPER', `Fetching details for ${matchLinks.length} matches concurrently (concurrency = 3)...`);
 
-  for (const { href, title } of matchLinks) {
+  const partidos = await mapConcurrent(matchLinks, 3, async ({ href, title }) => {
     log('MATCH', `Processing: "${title}"  →  ${href}`);
 
     try {
@@ -333,13 +388,13 @@ async function main() {
       const hora = buildIsoDatetime(time);
 
       log('MATCH', `  Local: ${local || '—'}`);
-      log('MATCH', `  Visitante: ${visitante || '—'}`);
+      if (visitante) log('MATCH', `  Visitante: ${visitante}`);
       log('MATCH', `  Time: ${time || '—'}  →  ${hora || '—'}`);
       log('MATCH', `  Sport: ${sport}`);
       log('MATCH', `  Competition: ${competition}`);
 
       // Fetch detail page
-      await sleep(RATE_LIMIT_MS);
+      await sleep(100);
 
       let detailHtml;
       try {
@@ -348,25 +403,27 @@ async function main() {
       } catch (err) {
         log('STREAM', `  ⚠ Could not fetch detail page: ${err.message}`);
         // Still add the match without streams
-        partidos.push(buildPartido(local, visitante, hora, competition, sport, []));
-        continue;
+        return buildPartido(local, visitante, hora, competition, sport, []);
       }
 
       const channels = parseDetailPage(detailHtml);
       log('STREAM', `  Found ${channels.length} UCASTER channel(s): ${channels.join(', ') || '(none)'}`);
 
-      partidos.push(buildPartido(local, visitante, hora, competition, sport, channels));
+      return buildPartido(local, visitante, hora, competition, sport, channels);
     } catch (err) {
       log('MATCH', `  ✖ Error processing match: ${err.message}`);
+      return null;
     }
-  }
+  });
+
+  const validPartidos = partidos.filter(p => p !== null);
 
   log('SCRAPER', '---');
-  log('SCRAPER', `Total matches scraped: ${partidos.length}`);
+  log('SCRAPER', `Total matches scraped: ${validPartidos.length}`);
 
   // ------ Build payload ------
 
-  const payload = { partidos };
+  const payload = { partidos: validPartidos };
 
   if (DRY_RUN) {
     log('SYNC', 'DRY-RUN — payload that would be sent:');
@@ -377,7 +434,7 @@ async function main() {
   // ------ POST to sync API ------
 
   try {
-    log('SYNC', `POSTing ${partidos.length} match(es) to ${API_URL}/api/partidos/sync`);
+    log('SYNC', `POSTing ${validPartidos.length} match(es) to ${API_URL}/api/partidos/sync`);
     const res = await fetch(`${API_URL}/api/partidos/sync`, {
       method: 'POST',
       headers: {
