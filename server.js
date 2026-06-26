@@ -1891,21 +1891,21 @@ app.get('/admin', requireAuth, async (req, res) => {
                         <td style="font-weight:700;color:${rCount > 0 ? '#f59e0b' : 'var(--text-muted)'}">${rCount}</td>
                         <td>
                             <div class="actions-cell">
-                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch({
-                                    id:'${m.id}',
-                                    local:\`${(m.local||'').replace(/`/g,'\\`')}\`,
-                                    visitante:\`${(m.visitante||'').replace(/`/g,'\\`')}\`,
-                                    hora:'${m.hora||''}',
-                                    estado:'${m.estado}',
-                                    competicion:\`${(m.competicion||'Other').replace(/`/g,'\\`')}\`,
-                                    deporte:\`${(m.deporte||'Football').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_1:\`${(m.ucaster_id_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_1:\`${(m.ucaster_script_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_2:\`${(m.ucaster_id_2||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_2:\`${(m.ucaster_script_2||'').replace(/`/g,'\\`')}\`,
-                                    logo_local:\`${(m.logo_local||'').replace(/`/g,'\\`')}\`,
-                                    logo_visitante:\`${(m.logo_visitante||'').replace(/`/g,'\\`')}\`
-                                })">Edit</button>
+                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch(${escapeHtml(JSON.stringify({
+                                    id: m.id,
+                                    local: m.local || '',
+                                    visitante: m.visitante || '',
+                                    hora: m.hora || '',
+                                    estado: m.estado,
+                                    competicion: m.competicion || 'Other',
+                                    deporte: m.deporte || 'Football',
+                                    ucaster_id_1: m.ucaster_id_1 || '',
+                                    ucaster_script_1: m.ucaster_script_1 || '',
+                                    ucaster_id_2: m.ucaster_id_2 || '',
+                                    ucaster_script_2: m.ucaster_script_2 || '',
+                                    logo_local: m.logo_local || '',
+                                    logo_visitante: m.logo_visitante || ''
+                                }))})">Edit</button>
                                 <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
                                     <button type="submit" class="btn-sm btn-delete">Delete</button>
                                 </form>
