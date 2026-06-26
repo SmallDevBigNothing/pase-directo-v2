@@ -2295,10 +2295,21 @@ app.post('/api/partidos/sync', async (req, res) => {
 // ============================================================
 // --- SERVER STARTUP ---
 // ============================================================
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`Server running at http://localhost:${PORT}`);
     });
 }
 
-module.exports = app;
+// Expose functions for testing
+if (process.env.NODE_ENV === 'test') {
+    module.exports = {
+        app,
+        signValue,
+        createSignedCookie,
+        verifySignedCookie,
+        COOKIE_SECRET
+    };
+} else {
+    module.exports = app;
+}
