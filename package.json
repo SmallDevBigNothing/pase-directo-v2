@@ -4,13 +4,16 @@
   "description": "App para gestionar streams de fútbol",
   "main": "server.js",
   "scripts": {
+    "test": "jest",
     "start": "node server.js",
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-
     "@supabase/supabase-js": "^2.43.0",
+    "express": "^4.19.2",
     "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0"
   }
 }
