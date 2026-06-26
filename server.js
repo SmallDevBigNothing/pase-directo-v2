@@ -2101,17 +2101,11 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
     res.send(html);
 });
 
-// ============================================================
-// --- ADMIN CRUD ACTIONS ---
-// ============================================================
 
-// Add Match
-app.post('/admin/add', requireAuth, async (req, res) => {
-    const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
-
+function extractMatchData(body) {
+    const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = body;
     const resolvedStatus = (estado === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : (estado || 'Upcoming');
-
-    const { error } = await supabase.from('partidos').insert([{
+    return {
         local: local || null,
         visitante: visitante || null,
         hora: hora || null,
@@ -2124,7 +2118,17 @@ app.post('/admin/add', requireAuth, async (req, res) => {
         ucaster_script_2: ucaster_script_2 || null,
         logo_local: logo_local || null,
         logo_visitante: logo_visitante || null,
-    }]);
+    };
+}
+
+// ============================================================
+// --- ADMIN CRUD ACTIONS ---
+// ============================================================
+
+// Add Match
+app.post('/admin/add', requireAuth, async (req, res) => {
+    const matchData = extractMatchData(req.body);
+    const { error } = await supabase.from('partidos').insert([matchData]);
 
     if (error) {
         console.error('Error inserting match:', error);
@@ -2135,25 +2139,10 @@ app.post('/admin/add', requireAuth, async (req, res) => {
 
 // Edit Match
 app.post('/admin/editar/:id', requireAuth, async (req, res) => {
-    const { local, visitante, hora, estado, competicion, deporte, ucaster_id_1, ucaster_script_1, ucaster_id_2, ucaster_script_2, logo_local, logo_visitante } = req.body;
-
-    const resolvedStatus = (estado === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : (estado || 'Upcoming');
+    const matchData = extractMatchData(req.body);
 
     const { error } = await supabase.from('partidos')
-        .update({
-            local: local || null,
-            visitante: visitante || null,
-            hora: hora || null,
-            estado: resolvedStatus,
-            competicion: competicion || 'Other',
-            deporte: deporte || 'Football',
-            ucaster_id_1: ucaster_id_1 || null,
-            ucaster_script_1: ucaster_script_1 || null,
-            ucaster_id_2: ucaster_id_2 || null,
-            ucaster_script_2: ucaster_script_2 || null,
-            logo_local: logo_local || null,
-            logo_visitante: logo_visitante || null,
-        })
+        .update(matchData)
         .eq('id', req.params.id);
 
     if (error) {
