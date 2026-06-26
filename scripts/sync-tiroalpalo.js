@@ -156,9 +156,35 @@ function parseTitle(raw) {
   return { local: namePart, visitante: '', time };
 }
 
+
 // ---------------------------------------------------------------------------
 // Time handling — Europe/Madrid timezone
 // ---------------------------------------------------------------------------
+
+const nowMadridFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: 'Europe/Madrid',
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const currentHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  hour: 'numeric',
+  hour12: false
+});
+
+const utcFormatterGlobal = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+  hour12: false
+});
+
 
 /**
  * Convert a "HH:MM" string into an ISO 8601 UTC datetime for today
@@ -173,24 +199,14 @@ function buildIsoDatetime(timeStr) {
   const [hours, minutes] = timeStr.split(':').map(Number);
 
   // Get "today" in Europe/Madrid as a YYYY-MM-DD string
-  const nowMadrid = new Date().toLocaleString('en-CA', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }); // "2026-06-21"
+  const nowMadrid = nowMadridFormatter.format(new Date()); // e.g. "2026-06-21"
 
   const [y, m, d] = nowMadrid.split('-').map(Number);
   let date = new Date(Date.UTC(y, m - 1, d));
 
   // Determine current hour in Europe/Madrid to avoid tomorrow shifts when running in the morning
   const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Madrid',
-    hour: 'numeric',
-    hour12: false
-  });
-  const parts = formatter.formatToParts(now);
+  const parts = currentHourFormatter.formatToParts(now);
   let currentMadridHour = 0;
   parts.forEach(p => {
     if (p.type === 'hour') {
@@ -213,18 +229,7 @@ function buildIsoDatetime(timeStr) {
   const utcDate = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay, hours, minutes, 0));
 
   // Format this date in Madrid timezone to see what wall-clock time it gets
-  const utcFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: false
-  });
-
-  const utcParts = utcFormatter.formatToParts(utcDate);
+  const utcParts = utcFormatterGlobal.formatToParts(utcDate);
   const val = {};
   utcParts.forEach(p => { val[p.type] = Number(p.value); });
 
