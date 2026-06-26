@@ -1370,8 +1370,8 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'AdminFutbol2026';
-    if (password === adminPassword) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminPassword && password === adminPassword) {
         const signed = createSignedCookie('authenticated');
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
         res.setHeader('Set-Cookie', `${COOKIE_NAME}=${signed}; HttpOnly; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`);
