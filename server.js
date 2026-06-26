@@ -323,16 +323,37 @@ const SHARED_CSS = `
 // --- PUBLIC ROUTES ---
 // ============================================================
 
+// Homepage Cache
+let homepageCache = {
+    data: null,
+    timestamp: 0
+};
+const HOMEPAGE_CACHE_TTL = 30 * 1000; // 30 seconds
+
+
 // Homepage
 app.get('/', async (req, res) => {
-    const { data: matches, error } = await supabase
-        .from('partidos')
-        .select('*')
-        .order('hora', { ascending: true });
+    const now = Date.now();
+    let matches;
 
-    if (error) {
-        console.error('Error reading matches:', error);
-        return res.status(500).send('Error loading matches.');
+    if (homepageCache.data && (now - homepageCache.timestamp < HOMEPAGE_CACHE_TTL)) {
+        matches = homepageCache.data;
+    } else {
+        const { data: dbMatches, error } = await supabase
+            .from('partidos')
+            .select('*')
+            .order('hora', { ascending: true });
+
+        if (error) {
+            console.error('Error reading matches:', error);
+            return res.status(500).send('Error loading matches.');
+        }
+
+        matches = dbMatches;
+        homepageCache = {
+            data: dbMatches,
+            timestamp: now
+        };
     }
 
     const liveMatches = matches.filter(m => m.estado === 'Live' && (m.ucaster_id_1 || m.ucaster_id_2));
