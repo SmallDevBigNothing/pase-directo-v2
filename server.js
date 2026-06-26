@@ -8,7 +8,12 @@ const PORT = process.env.PORT || 3000;
 // ============================================================
 // --- SIGNED COOKIE AUTH (Stateless, Serverless-Safe) ---
 // ============================================================
-const COOKIE_SECRET = process.env.SESSION_SECRET || 'futbol-secreto-2026';
+const COOKIE_SECRET = process.env.SESSION_SECRET || (() => {
+    if (process.env.NODE_ENV === 'production') {
+        throw new Error('SESSION_SECRET environment variable must be set in production');
+    }
+    return 'futbol-secreto-2026';
+})();
 const COOKIE_NAME = 'pd_admin';
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
 
