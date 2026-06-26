@@ -1,6 +1,7 @@
-process.env.SESSION_SECRET = 'd' + 'u' + 'm' + 'm' + 'y' + '-' + 't' + 'e' + 's' + 't' + '-' + 's' + 'e' + 'c' + 'r' + 'e' + 't';
-const app = require('./server');
 const crypto = require('crypto');
+// Set dummy secret BEFORE importing app
+process.env.SESSION_SECRET = crypto.randomBytes(16).toString('hex');
+const app = require('./server');
 
 describe('Cookie signing functions', () => {
     const expectedSecret = process.env.SESSION_SECRET;
