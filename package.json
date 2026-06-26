@@ -5,11 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "node --test"
   },
   "dependencies": {
     "express": "^4.19.2",
-
     "@supabase/supabase-js": "^2.43.0",
     "serverless-http": "^3.2.0"
   }
