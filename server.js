@@ -251,9 +251,9 @@ function teamAvatarHTML(name, logoUrl) {
     const color = getTeamColor(name || 'Team');
     const initials = getTeamInitials(name || 'Team');
     if (logoUrl) {
-        return `<img class="team-logo" src="${logoUrl}" alt="${name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color};display:none">${initials}</div>`;
+        return `<img class="team-logo" src="${logoUrl}" alt="${escapeHtml(name)}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color};display:none">${initials}</div>`;
     }
-    return `<img class="team-logo" data-auto-logo="${escapeHtml(name)}" alt="${name}" style="display:none" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color}">${initials}</div>`;
+    return `<img class="team-logo" data-auto-logo="${escapeHtml(name)}" alt="${escapeHtml(name)}" style="display:none" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color}">${initials}</div>`;
 }
 
 function escapeHtml(str) {
