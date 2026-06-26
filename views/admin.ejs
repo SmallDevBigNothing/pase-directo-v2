@@ -1,0 +1,641 @@
+    <!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard — Pase Directo</title>
+    <style>
+        <%- SHARED_CSS %>
+        body { background: var(--bg-primary); }
+        .admin-header {
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            background: var(--bg-secondary);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        .admin-header-inner {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .admin-logo {
+            font-size: 1.2rem;
+            font-weight: 700;
+            background: var(--gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .admin-logo span { font-weight: 400; -webkit-text-fill-color: var(--text-secondary); }
+        .btn-logout {
+            color: var(--text-secondary);
+            font-size: 0.82rem;
+            font-weight: 600;
+            padding: 6px 14px;
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            transition: all var(--transition);
+        }
+        .btn-logout:hover { color: var(--accent); border-color: var(--accent); }
+        .admin-content { padding: 28px 0 60px; }
+
+        /* Stats cards */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 14px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px;
+        }
+        .stat-card .stat-label { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+        .stat-card .stat-number { font-size: 2rem; font-weight: 800; }
+        .stat-card.live .stat-number { color: var(--accent); }
+        .stat-card.upcoming .stat-number { color: #3b82f6; }
+        .stat-card.reports .stat-number { color: <%= totalReports > 0 ? '#f59e0b' : 'var(--text-muted)' %>; }
+
+        /* Section headers */
+        .admin-section-header {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 18px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        /* Form */
+        .form-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            padding: 24px;
+            margin-bottom: 32px;
+        }
+        .form-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        .form-group.full { grid-column: 1 / -1; }
+        .form-group label { font-size: 0.75rem; font-weight: 600; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.5px; }
+        .form-group input, .form-group select {
+            padding: 10px 12px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: var(--bg-secondary);
+            color: var(--text-primary);
+            font-size: 0.88rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color var(--transition);
+        }
+        .form-group input:focus, .form-group select:focus { border-color: var(--accent); }
+        .form-group select option { background: var(--bg-secondary); color: var(--text-primary); }
+        .section-divider-label {
+            grid-column: 1 / -1;
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: 8px;
+            padding-top: 12px;
+            border-top: 1px dashed rgba(255,255,255,0.06);
+        }
+        .form-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 16px;
+        }
+        .btn-add {
+            flex: 1;
+            padding: 11px;
+            border: none;
+            border-radius: var(--radius-sm);
+            background: #22c55e;
+            color: white;
+            font-size: 0.88rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .btn-add:hover { background: #16a34a; }
+        .btn-add.editing { background: #3b82f6; }
+        .btn-add.editing:hover { background: #2563eb; }
+        .btn-cancel-edit {
+            padding: 11px 20px;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.88rem;
+            font-weight: 600;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition);
+            display: none;
+        }
+        .btn-cancel-edit:hover { border-color: var(--text-secondary); color: var(--text-primary); }
+
+        /* Table */
+        .table-wrap {
+            overflow-x: auto;
+            border-radius: var(--radius);
+            border: 1px solid var(--border);
+            margin-bottom: 32px;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        th {
+            padding: 12px 14px;
+            text-align: left;
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-muted);
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            white-space: nowrap;
+        }
+        td {
+            padding: 12px 14px;
+            font-size: 0.85rem;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: rgba(255,255,255,0.02); }
+        .match-info strong { display: block; font-weight: 600; }
+        .match-info small { color: var(--text-muted); font-size: 0.78rem; }
+        .match-info .comp-small { color: var(--text-secondary); font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* Toggle switch */
+        .toggle-switch {
+            position: relative;
+            width: 48px;
+            height: 26px;
+            cursor: pointer;
+        }
+        .toggle-switch input { display: none; }
+        .toggle-slider {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: #333;
+            border-radius: 26px;
+            transition: background 0.3s;
+        }
+        .toggle-slider::before {
+            content: '';
+            position: absolute;
+            width: 20px; height: 20px;
+            bottom: 3px; left: 3px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.3s;
+        }
+        .toggle-switch input:checked + .toggle-slider { background: var(--accent); }
+        .toggle-switch input:checked + .toggle-slider::before { transform: translateX(22px); }
+
+        .status-text {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 3px;
+        }
+        .status-text.live { color: var(--accent); }
+        .status-text.upcoming { color: #3b82f6; }
+
+        code { background: rgba(255,255,255,0.06); padding: 2px 7px; border-radius: 4px; font-size: 0.78rem; word-break: break-all; color: var(--text-secondary); }
+
+        .actions-cell { display: flex; gap: 6px; flex-wrap: wrap; }
+        .btn-sm {
+            padding: 5px 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .btn-edit { background: #3b82f6; color: white; }
+        .btn-edit:hover { background: #2563eb; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-delete:hover { background: #dc2626; }
+        .btn-preview { background: rgba(255,255,255,0.08); color: var(--text-secondary); border: 1px solid var(--border); }
+        .btn-preview:hover { color: var(--text-primary); border-color: var(--text-secondary); }
+
+        /* Reports section */
+        .reports-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 32px; }
+        .report-item {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 12px 16px;
+            gap: 12px;
+        }
+        .report-item .report-info { flex: 1; min-width: 0; }
+        .report-item .report-match { font-weight: 600; font-size: 0.88rem; }
+        .report-item .report-detail { color: var(--text-muted); font-size: 0.78rem; margin-top: 2px; }
+        .report-item .report-count { font-weight: 800; color: #f59e0b; font-size: 1.1rem; margin-right: 8px; flex-shrink: 0; }
+        .btn-clear {
+            padding: 5px 12px;
+            border: 1px solid rgba(239,68,68,0.3);
+            border-radius: 5px;
+            background: transparent;
+            color: #ef4444;
+            font-size: 0.78rem;
+            font-weight: 700;
+            font-family: inherit;
+            cursor: pointer;
+            transition: all var(--transition);
+            flex-shrink: 0;
+        }
+        .btn-clear:hover { background: rgba(239,68,68,0.1); border-color: #ef4444; }
+        .empty-reports { color: var(--text-muted); font-size: 0.85rem; font-style: italic; padding: 16px 0; }
+
+        /* Preview modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .modal-overlay.active { display: flex; }
+        .modal-content {
+            background: #111;
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            width: 100%;
+            max-width: 900px;
+            overflow: hidden;
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 18px;
+            border-bottom: 1px solid var(--border);
+        }
+        .modal-header h3 { font-size: 0.95rem; font-weight: 700; }
+        .modal-close {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            font-size: 1.3rem;
+            cursor: pointer;
+            padding: 4px 8px;
+            transition: color var(--transition);
+        }
+        .modal-close:hover { color: var(--text-primary); }
+        .modal-body { aspect-ratio: 16/9; position: relative; background: #000; }
+        .modal-body iframe { width: 100%; height: 100%; border: none; }
+
+        @media (max-width: 768px) {
+            .form-grid { grid-template-columns: 1fr; }
+            .stats-row { grid-template-columns: repeat(3, 1fr); }
+            .actions-cell { flex-direction: column; }
+            .btn-sm { width: 100%; text-align: center; }
+            td:nth-child(3), th:nth-child(3), td:nth-child(4), th:nth-child(4) { display: none; }
+        }
+        @media (max-width: 480px) {
+            .stats-row { grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+            .stat-card { padding: 12px; }
+            .stat-card .stat-number { font-size: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="admin-header">
+        <div class="container admin-header-inner">
+            <div class="admin-logo">Pase Directo <span>/ Admin</span></div>
+            <a href="/admin/logout" class="btn-logout">Sign Out</a>
+        </div>
+    </div>
+
+    <div class="container admin-content">
+        <!-- Stats -->
+        <div class="stats-row">
+            <div class="stat-card live">
+                <div class="stat-label">Live Now</div>
+                <div class="stat-number"><%= liveCount %></div>
+            </div>
+            <div class="stat-card upcoming">
+                <div class="stat-label">Upcoming</div>
+                <div class="stat-number"><%= upcomingCount %></div>
+            </div>
+            <div class="stat-card reports">
+                <div class="stat-label">Reports</div>
+                <div class="stat-number"><%= totalReports %></div>
+            </div>
+        </div>
+
+        <!-- Add/Edit Form -->
+        <div class="admin-section-header" id="form-title">&#10133; Add Match</div>
+        <div class="form-card">
+            <form id="match-form" action="/admin/add" method="POST">
+                <div class="form-grid">
+                    <div class="form-group">
+                        <label>Home Team</label>
+                        <input type="text" name="local" placeholder="e.g. Real Madrid" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Away Team</label>
+                        <input type="text" name="visitante" placeholder="e.g. Barcelona (optional)">
+                    </div>
+                    <div class="form-group">
+                        <label>Date & Time</label>
+                        <input type="datetime-local" name="hora" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Competition</label>
+                        <select name="competicion">
+                            <% competitions.forEach(c => { %><option value="<%= c %>"><%= c %></option><% }) %>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Status</label>
+                        <select name="estado" required>
+                            <option value="Live">Live</option>
+                            <option value="Upcoming" selected>Upcoming</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Sport</label>
+                        <select name="deporte">
+                            <option value="Football">Football</option>
+                            <option value="Basketball">Basketball</option>
+                            <option value="Tennis">Tennis</option>
+                            <option value="Formula 1">Formula 1</option>
+                            <option value="MotoGP">MotoGP</option>
+                            <option value="IndyCar">IndyCar</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="section-divider-label">&#127909; Ucaster Channel 1 (Primary)</div>
+                    <div class="form-group">
+                        <label>Channel 1 ID</label>
+                        <input type="text" name="ucaster_id_1" placeholder="e.g. jfgjj4hfdzx">
+                    </div>
+                    <div class="form-group">
+                        <label>Channel 1 Script URL</label>
+                        <input type="url" name="ucaster_script_1" placeholder="e.g. https://new.lastzone.top/static/scripts/hucaster.js">
+                    </div>
+
+                    <div class="section-divider-label">&#127909; Ucaster Channel 2 (Alternate, optional)</div>
+                    <div class="form-group">
+                        <label>Channel 2 ID</label>
+                        <input type="text" name="ucaster_id_2" placeholder="Optional">
+                    </div>
+                    <div class="form-group">
+                        <label>Channel 2 Script URL</label>
+                        <input type="url" name="ucaster_script_2" placeholder="Optional">
+                    </div>
+
+                    <div class="section-divider-label">&#127942; Team Logos (optional URLs)</div>
+                    <div class="form-group">
+                        <label>Home Logo URL</label>
+                        <input type="url" name="logo_local" placeholder="https://...">
+                    </div>
+                    <div class="form-group">
+                        <label>Away Logo URL</label>
+                        <input type="url" name="logo_visitante" placeholder="https://...">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="submit" id="form-submit-btn" class="btn-add">Add Match</button>
+                    <button type="button" id="btn-cancel" class="btn-cancel-edit" onclick="cancelEdit()">Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Current Matches Table -->
+        <div class="admin-section-header">&#9917; Current Matches (<%= matches.length %>)</div>
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Match</th>
+                        <th>Status</th>
+                        <th>Ch 1</th>
+                        <th>Ch 2</th>
+                        <th>Reports</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <% if (matches.length === 0) { %>
+<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:24px">No matches configured.</td></tr>
+<% } %>
+                    <% matches.forEach(m => { %>
+                        const rCount = reportCounts[m.id] ? reportCounts[m.id].total : 0;
+                        const isLive = m.estado === 'Live';
+
+                    <tr>
+                        <td class="match-info">
+                            <div class="comp-small"><%= escapeHtml(m.competicion || 'Other') %></div>
+                            <strong><%= escapeHtml(m.local) %><%- m.visitante ? ' vs ' + escapeHtml(m.visitante) : '' %></strong>
+                            <small><%= formatMatchDate(m.hora) %></small>
+                        </td>
+                        <td>
+                            <label class="toggle-switch" title="Toggle Live/Upcoming">
+                                <input type="checkbox" <%= isLive ? 'checked' : '' %> onchange="toggleStatus('<%= m.id %>', this)">
+                                <span class="toggle-slider"></span>
+                            </label>
+                            <div class="status-text <%= isLive ? 'live' : 'upcoming' %>" id="status-label-<%= m.id %>"><%= isLive ? 'Live' : 'Upcoming' %></div>
+                        </td>
+                        <td><%- m.ucaster_id_1 ? `<code>${escapeHtml(m.ucaster_id_1)}</code>` : '<span style="color:var(--text-muted)">—</span>' %></td>
+                        <td><%- m.ucaster_id_2 ? `<code>${escapeHtml(m.ucaster_id_2)}</code>` : '<span style="color:var(--text-muted)">—</span>' %></td>
+                        <td style="font-weight:700;color:<%= rCount > 0 ? '#f59e0b' : 'var(--text-muted)' %>"><%= rCount %></td>
+                        <td>
+                            <div class="actions-cell">
+                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch({
+                                    id:'<%= m.id %>',
+                                    local:\`<%- (m.local||'').replace(/`/g,'\\`') %>\`,
+                                    visitante:\`<%- (m.visitante||'').replace(/`/g,'\\`') %>\`,
+                                    hora:'<%= m.hora||'' %>',
+                                    estado:'<%= m.estado %>',
+                                    competicion:\`<%- (m.competicion||'Other').replace(/`/g,'\\`') %>\`,
+                                    deporte:\`<%- (m.deporte||'Football').replace(/`/g,'\\`') %>\`,
+                                    ucaster_id_1:\`<%- (m.ucaster_id_1||'').replace(/`/g,'\\`') %>\`,
+                                    ucaster_script_1:\`<%- (m.ucaster_script_1||'').replace(/`/g,'\\`') %>\`,
+                                    ucaster_id_2:\`<%- (m.ucaster_id_2||'').replace(/`/g,'\\`') %>\`,
+                                    ucaster_script_2:\`<%- (m.ucaster_script_2||'').replace(/`/g,'\\`') %>\`,
+                                    logo_local:\`<%- (m.logo_local||'').replace(/`/g,'\\`') %>\`,
+                                    logo_visitante:\`<%- (m.logo_visitante||'').replace(/`/g,'\\`') %>\`
+                                })">Edit</button>
+                                <form action="/admin/eliminar/<%= m.id %>" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
+                                    <button type="submit" class="btn-sm btn-delete">Delete</button>
+                                </form>
+                                <%- (m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}', '${escapeHtml(m.local).replace(/'/g, "\\'")}${m.visitante ? ' vs ' + escapeHtml(m.visitante).replace(/'/g, "\\'") : ''}')">Preview</button>` : '' %>
+                            </div>
+                        </td>
+                    </tr>
+                   <% }); %>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="admin-section-header">&#9888;&#65039; Active Reports</div>
+        <div class="reports-list" id="reports-list">
+            <% if (Object.keys(reportCounts).length === 0) { %>
+    <p class="empty-reports">No reports at this time.</p>
+<% } else { %>
+    <% Object.entries(reportCounts).forEach(([matchId, info]) => {
+        const match = matches.find(m => m.id === matchId);
+        if (!match) return;
+        const channelDetails = Object.entries(info.channels).map(([ch, count]) => `Source ${ch}: ${count}`).join(', ');
+    %>
+    <div class="report-item" id="report-<%= matchId %>">
+        <div class="report-info">
+            <div class="report-match"><%= escapeHtml(match.local) %><%- match.visitante ? " vs " + escapeHtml(match.visitante) : "" %></div>
+            <div class="report-detail"><%= channelDetails %></div>
+        </div>
+        <span class="report-count"><%= info.total %></span>
+        <button class="btn-clear" onclick="clearReports('<%= matchId %>')">Clear</button>
+    </div>
+    <% }); %>
+<% } %>
+        </div>
+    </div>
+
+    <!-- Preview Modal -->
+    <div class="modal-overlay" id="preview-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="preview-title">Stream Preview</h3>
+                <button class="modal-close" onclick="closePreview()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <iframe id="preview-iframe" src="about:blank"></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // --- Form edit/cancel ---
+        var form = document.getElementById('match-form');
+        var formTitle = document.getElementById('form-title');
+        var formSubmitBtn = document.getElementById('form-submit-btn');
+        var btnCancel = document.getElementById('btn-cancel');
+
+        function loadMatch(m) {
+            form.action = '/admin/editar/' + m.id;
+            formTitle.innerHTML = '&#9998; Edit Match';
+            formSubmitBtn.textContent = 'Save Changes';
+            formSubmitBtn.classList.add('editing');
+            btnCancel.style.display = 'block';
+
+            form.elements['local'].value = m.local;
+            form.elements['visitante'].value = m.visitante;
+
+            if (m.hora) {
+                var date = new Date(m.hora);
+                if (!isNaN(date.getTime())) {
+                    var off = date.getTimezoneOffset() * 60000;
+                    form.elements['hora'].value = new Date(date.getTime() - off).toISOString().slice(0, 16);
+                } else {
+                    form.elements['hora'].value = '';
+                }
+            } else {
+                form.elements['hora'].value = '';
+            }
+
+            form.elements['estado'].value = m.estado;
+            form.elements['competicion'].value = m.competicion || 'Other';
+            form.elements['deporte'].value = m.deporte || 'Football';
+            form.elements['ucaster_id_1'].value = m.ucaster_id_1;
+            form.elements['ucaster_script_1'].value = m.ucaster_script_1;
+            form.elements['ucaster_id_2'].value = m.ucaster_id_2;
+            form.elements['ucaster_script_2'].value = m.ucaster_script_2;
+            form.elements['logo_local'].value = m.logo_local;
+            form.elements['logo_visitante'].value = m.logo_visitante;
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            form.action = '/admin/add';
+            formTitle.innerHTML = '&#10133; Add Match';
+            formSubmitBtn.textContent = 'Add Match';
+            formSubmitBtn.classList.remove('editing');
+            btnCancel.style.display = 'none';
+            form.reset();
+        }
+
+        // --- AJAX Toggle Status ---
+        function toggleStatus(id, checkbox) {
+            fetch('/api/partidos/' + id + '/toggle-status', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var label = document.getElementById('status-label-' + id);
+                    label.textContent = data.newStatus;
+                    label.className = 'status-text ' + (data.newStatus === 'Live' ? 'live' : 'upcoming');
+                } else {
+                    checkbox.checked = !checkbox.checked;
+                    alert('Error: ' + (data.error || 'Unknown'));
+                }
+            })
+            .catch(function() {
+                checkbox.checked = !checkbox.checked;
+                alert('Network error.');
+            });
+        }
+
+        // --- Clear Reports ---
+        function clearReports(matchId) {
+            if (!confirm('Clear all reports for this match?')) return;
+            fetch('/api/partidos/' + matchId + '/clear-reports', { method: 'POST' })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.success) {
+                    var el = document.getElementById('report-' + matchId);
+                    if (el) el.remove();
+                    // Check if reports list is now empty
+                    var list = document.getElementById('reports-list');
+                    if (!list.querySelector('.report-item')) {
+                        list.innerHTML = '<p class="empty-reports">No reports at this time.</p>';
+                    }
+                }
+            })
+            .catch(function() { alert('Network error.'); });
+        }
+
+        // --- Preview Modal ---
+        function previewStream(matchId, title) {
+            document.getElementById('preview-title').textContent = 'Preview: ' + title;
+            document.getElementById('preview-iframe').src = '/admin/preview/' + matchId;
+            document.getElementById('preview-modal').classList.add('active');
+        }
+        function closePreview() {
+            document.getElementById('preview-modal').classList.remove('active');
+            document.getElementById('preview-iframe').src = 'about:blank';
+        }
+        document.getElementById('preview-modal').addEventListener('click', function(e) {
+            if (e.target === this) closePreview();
+        });
+    </script>
+</body>
+</html>

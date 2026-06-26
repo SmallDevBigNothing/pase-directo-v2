@@ -8,9 +8,9 @@
     "dev": "node server.js"
   },
   "dependencies": {
-    "express": "^4.19.2",
-
     "@supabase/supabase-js": "^2.43.0",
+    "ejs": "^6.0.1",
+    "express": "^4.19.2",
     "serverless-http": "^3.2.0"
   }
 }
