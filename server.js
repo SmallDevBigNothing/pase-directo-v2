@@ -211,27 +211,28 @@ const requireAuth = (req, res, next) => {
 // ============================================================
 // --- HELPER FUNCTIONS ---
 // ============================================================
+
+const timeFormatter = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' });
+const dateFormatter = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
+const getLocalFormatter = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' });
+
 function formatMatchDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' };
-    const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' };
-
-    const timeStr = new Intl.DateTimeFormat('en-US', optionsTime).format(date);
+    const timeStr = timeFormatter.format(date);
 
     const now = new Date();
-    const getLocal = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
 
-    const todayStr = getLocal(now);
-    const tomorrowStr = getLocal(new Date(now.getTime() + 86400000));
-    const matchDayStr = getLocal(date);
+    const todayStr = getLocalFormatter.format(now);
+    const tomorrowStr = getLocalFormatter.format(new Date(now.getTime() + 86400000));
+    const matchDayStr = getLocalFormatter.format(date);
 
     if (matchDayStr === todayStr) return `Today at ${timeStr}`;
     if (matchDayStr === tomorrowStr) return `Tomorrow at ${timeStr}`;
 
-    let dateStr = new Intl.DateTimeFormat('en-US', optionsDate).format(date);
+    let dateStr = dateFormatter.format(date);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     return `${dateStr} at ${timeStr}`;
 }
