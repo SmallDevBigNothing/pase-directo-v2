@@ -485,8 +485,14 @@ function buildPartido(local, visitante, hora, competicion, deporte, channels) {
 // Run
 // ---------------------------------------------------------------------------
 
-main().catch((err) => {
-  log('SCRAPER', `Unhandled error: ${err.message}`);
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  main().catch((err) => {
+    log('SCRAPER', `Unhandled error: ${err.message}`);
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = {
+  detectSport,
+};
