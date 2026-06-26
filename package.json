@@ -1,16 +1,19 @@
 {
   "name": "pase-directo",
   "version": "1.0.0",
-  "description": "App para gestionar streams de fútbol",
+  "description": "App para gestionar streams de f\u00fatbol",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server.js"
+    "dev": "node server.js",
+    "test": "jest"
   },
   "dependencies": {
-    "express": "^4.19.2",
-
     "@supabase/supabase-js": "^2.43.0",
+    "express": "^4.19.2",
     "serverless-http": "^3.2.0"
+  },
+  "devDependencies": {
+    "jest": "^30.4.2"
   }
 }
