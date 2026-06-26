@@ -1,9 +1,9 @@
+process.env.SESSION_SECRET = 'dummy-test-secret';
 const app = require('./server');
 const crypto = require('crypto');
 
 describe('Cookie signing functions', () => {
-    // Expected default secret is 'futbol-secreto-2026' when env var isn't set.
-    const expectedSecret = 'futbol-secreto-2026';
+    const expectedSecret = process.env.SESSION_SECRET;
 
     describe('signValue', () => {
         it('should correctly hash a string using the default secret', () => {
