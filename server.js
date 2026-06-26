@@ -2295,10 +2295,16 @@ app.post('/api/partidos/sync', async (req, res) => {
 // ============================================================
 // --- SERVER STARTUP ---
 // ============================================================
-if (process.env.NODE_ENV !== 'production') {
+if (process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test') {
     app.listen(PORT, () => {
         console.log(`Server running at http://localhost:${PORT}`);
     });
 }
 
 module.exports = app;
+if (process.env.NODE_ENV === "test") {
+    module.exports.teamAvatarHTML = teamAvatarHTML;
+    module.exports.getTeamInitials = getTeamInitials;
+    module.exports.getTeamColor = getTeamColor;
+    module.exports.escapeHtml = escapeHtml;
+}
