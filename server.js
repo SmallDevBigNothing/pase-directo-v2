@@ -931,12 +931,22 @@ app.get('/', async (req, res) => {
 
     <script>
         // Countdown timers
+        var countdownElements = [];
+        document.querySelectorAll('.countdown').forEach(function(el) {
+            var kickoff = el.getAttribute('data-kickoff');
+            countdownElements.push({
+                el: el,
+                time: kickoff ? new Date(kickoff).getTime() : null
+            });
+        });
+
         function updateCountdowns() {
-            document.querySelectorAll('.countdown').forEach(function(el) {
-                var kickoff = el.getAttribute('data-kickoff');
-                if (!kickoff) { el.textContent = 'TBD'; return; }
-                var diff = new Date(kickoff).getTime() - Date.now();
-                if (diff <= 0) { el.textContent = 'Starting soon...'; return; }
+            var now = Date.now();
+            for (var i = 0; i < countdownElements.length; i++) {
+                var item = countdownElements[i];
+                if (!item.time) { item.el.textContent = 'TBD'; continue; }
+                var diff = item.time - now;
+                if (diff <= 0) { item.el.textContent = 'Starting soon...'; continue; }
                 var d = Math.floor(diff / 86400000);
                 var h = Math.floor((diff % 86400000) / 3600000);
                 var m = Math.floor((diff % 3600000) / 60000);
@@ -946,8 +956,8 @@ app.get('/', async (req, res) => {
                 parts.push(String(h).padStart(2,'0') + 'h');
                 parts.push(String(m).padStart(2,'0') + 'm');
                 parts.push(String(s).padStart(2,'0') + 's');
-                el.textContent = 'Starts in ' + parts.join(' ');
-            });
+                item.el.textContent = 'Starts in ' + parts.join(' ');
+            }
         }
         updateCountdowns();
         setInterval(updateCountdowns, 1000);
