@@ -8,6 +8,9 @@ const PORT = process.env.PORT || 3000;
 // ============================================================
 // --- SIGNED COOKIE AUTH (Stateless, Serverless-Safe) ---
 // ============================================================
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('FATAL ERROR: SESSION_SECRET is not set in production.');
+}
 const COOKIE_SECRET = process.env.SESSION_SECRET || 'futbol-secreto-2026';
 const COOKIE_NAME = 'pd_admin';
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -1370,8 +1373,8 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'AdminFutbol2026';
-    if (password === adminPassword) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+    if (adminPassword && password === adminPassword) {
         const signed = createSignedCookie('authenticated');
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
         res.setHeader('Set-Cookie', `${COOKIE_NAME}=${signed}; HttpOnly; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`);
@@ -1891,21 +1894,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                         <td style="font-weight:700;color:${rCount > 0 ? '#f59e0b' : 'var(--text-muted)'}">${rCount}</td>
                         <td>
                             <div class="actions-cell">
-                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch({
-                                    id:'${m.id}',
-                                    local:\`${(m.local||'').replace(/`/g,'\\`')}\`,
-                                    visitante:\`${(m.visitante||'').replace(/`/g,'\\`')}\`,
-                                    hora:'${m.hora||''}',
-                                    estado:'${m.estado}',
-                                    competicion:\`${(m.competicion||'Other').replace(/`/g,'\\`')}\`,
-                                    deporte:\`${(m.deporte||'Football').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_1:\`${(m.ucaster_id_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_1:\`${(m.ucaster_script_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_2:\`${(m.ucaster_id_2||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_2:\`${(m.ucaster_script_2||'').replace(/`/g,'\\`')}\`,
-                                    logo_local:\`${(m.logo_local||'').replace(/`/g,'\\`')}\`,
-                                    logo_visitante:\`${(m.logo_visitante||'').replace(/`/g,'\\`')}\`
-                                })">Edit</button>
+                                <button type="button" class="btn-sm btn-edit" onclick='loadMatch(${escapeHtml(JSON.stringify(m))})'>Edit</button>
                                 <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
                                     <button type="submit" class="btn-sm btn-delete">Delete</button>
                                 </form>
