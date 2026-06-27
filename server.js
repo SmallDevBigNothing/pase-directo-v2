@@ -1002,7 +1002,9 @@ app.get('/', async (req, res) => {
                 return;
             }
 
+            var originalText = btn.innerHTML;
             btn.disabled = true;
+            btn.innerHTML = '⏳ Sending...';
 
             fetch('/api/partidos/' + matchId + '/report', {
                 method: 'POST',
@@ -1015,15 +1017,21 @@ app.get('/', async (req, res) => {
                     localStorage.setItem(storageKey, String(Date.now()));
                     showToast('Report sent. Thank you!', 'success');
                     btn.disabled = true;
-                    setTimeout(function() { btn.disabled = false; }, COOLDOWN_MS);
+                    btn.innerHTML = '✔ Reported';
+                    setTimeout(function() {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }, COOLDOWN_MS);
                 } else {
                     showToast(data.error || 'Error sending report.', 'error');
                     btn.disabled = false;
+                    btn.innerHTML = originalText;
                 }
             })
             .catch(function() {
                 showToast('Network error. Try again.', 'error');
                 btn.disabled = false;
+                btn.innerHTML = originalText;
             });
         }
 
@@ -1043,9 +1051,14 @@ app.get('/', async (req, res) => {
                 var storageKey = 'report_' + matchId + '_' + canal;
                 var lastReport = localStorage.getItem(storageKey);
                 if (lastReport && (Date.now() - parseInt(lastReport, 10)) < COOLDOWN_MS) {
+                    var originalText = btn.innerHTML;
                     btn.disabled = true;
+                    btn.innerHTML = '✔ Reported';
                     var remaining = COOLDOWN_MS - (Date.now() - parseInt(lastReport, 10));
-                    setTimeout(function() { btn.disabled = false; }, remaining);
+                    setTimeout(function() {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    }, remaining);
                 }
             });
         }
