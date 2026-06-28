@@ -889,8 +889,8 @@ app.get('/', async (req, res) => {
 
     <main class="container">
         <div class="search-bar">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="text" id="search-input" aria-label="Search matches" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
 
         ${allSports.length > 1 ? `
