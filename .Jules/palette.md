@@ -1,0 +1,3 @@
+## 2024-05-18 - Search Bar Accessibility in HTML Template Literals
+**Learning:** In projects that return server-rendered HTML strings instead of using frameworks or template engines, it's easy for form inputs to miss proper `<label>` tags or accessible names because they are embedded directly as HTML strings.
+**Action:** When working on server-rendered templates, always check input fields that lack visible labels (like search bars) and add `aria-label` directly to the `<input>` element. Also, identify decorative icons (like emojis used for search icons) and hide them from screen readers using `aria-hidden="true"`.
