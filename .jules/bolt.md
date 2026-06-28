@@ -1,0 +1,3 @@
+## 2024-03-24 - Server-Side Rendering Bottleneck: Intl.DateTimeFormat Instantiation
+**Learning:** In a codebase that relies heavily on server-rendered HTML strings instead of a modern frontend framework, helper functions like `formatMatchDate` are called synchronously inside template literal `.map()` loops. Instantiating `new Intl.DateTimeFormat` inside these loop-bound functions causes significant, unnecessary CPU overhead (60x+ slower) because parsing the options and initializing the formatter is expensive.
+**Action:** Extract `Intl.DateTimeFormat` instances to module-level constants and reuse the `.format()` method to dramatically reduce response time for long lists.
