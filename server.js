@@ -889,8 +889,8 @@ app.get('/', async (req, res) => {
 
     <main class="container">
         <div class="search-bar">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="text" id="search-input" aria-label="Search matches" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
 
         ${allSports.length > 1 ? `
@@ -1946,7 +1946,7 @@ app.get('/admin', requireAuth, async (req, res) => {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="preview-title">Stream Preview</h3>
-                <button class="modal-close" onclick="closePreview()">&times;</button>
+                <button class="modal-close" aria-label="Close preview" onclick="closePreview()">&times;</button>
             </div>
             <div class="modal-body">
                 <iframe id="preview-iframe" src="about:blank"></iframe>
