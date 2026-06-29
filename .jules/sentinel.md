@@ -1,0 +1,4 @@
+## 2025-02-20 - [Hardcoded Secrets Fallback]
+**Vulnerability:** Found hardcoded fallback values for `SESSION_SECRET` (`'futbol-secreto-2026'`) and `ADMIN_PASSWORD` (`'AdminFutbol2026'`) in `server.js`.
+**Learning:** These fallbacks present a severe security gap, especially if environment variables fail to load in production. An attacker could use these hardcoded credentials to gain administrative access or forge signed session cookies.
+**Prevention:** Avoid providing hardcoded string fallbacks for cryptographic secrets and authentication passwords. Instead, throw a fatal error on server startup or safely deny access when critical environment variables are missing in production.
