@@ -1611,7 +1611,17 @@ app.get('/admin', requireAuth, async (req, res) => {
             height: 26px;
             cursor: pointer;
         }
-        .toggle-switch input { display: none; }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+            position: absolute;
+            outline: none;
+        }
+        .toggle-switch input:focus-visible + .toggle-slider {
+            outline: 2px solid var(--accent);
+            outline-offset: 2px;
+        }
         .toggle-slider {
             position: absolute;
             top: 0; left: 0; right: 0; bottom: 0;
@@ -1881,7 +1891,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                         </td>
                         <td>
                             <label class="toggle-switch" title="Toggle Live/Upcoming">
-                                <input type="checkbox" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
+                                <input type="checkbox" aria-label="Toggle Live Status" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
                                 <span class="toggle-slider"></span>
                             </label>
                             <div class="status-text ${isLive ? 'live' : 'upcoming'}" id="status-label-${m.id}">${isLive ? 'Live' : 'Upcoming'}</div>
