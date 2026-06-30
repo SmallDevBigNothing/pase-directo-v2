@@ -250,10 +250,11 @@ function getTeamInitials(name) {
 function teamAvatarHTML(name, logoUrl) {
     const color = getTeamColor(name || 'Team');
     const initials = getTeamInitials(name || 'Team');
+    const safeName = escapeHtml(name || 'Team');
     if (logoUrl) {
-        return `<img class="team-logo" src="${logoUrl}" alt="${name}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color};display:none">${initials}</div>`;
+        return `<img class="team-logo" src="${escapeHtml(logoUrl)}" alt="${safeName}" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color};display:none">${initials}</div>`;
     }
-    return `<img class="team-logo" data-auto-logo="${escapeHtml(name)}" alt="${name}" style="display:none" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color}">${initials}</div>`;
+    return `<img class="team-logo" data-auto-logo="${escapeHtml(name)}" alt="${safeName}" style="display:none" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><div class="team-avatar" style="background:${color}">${initials}</div>`;
 }
 
 function escapeHtml(str) {
@@ -1111,14 +1112,14 @@ app.get('/partido/:id', async (req, res) => {
     const iframeBlocks = [];
     if (match.ucaster_id_1) {
         iframeBlocks.push(`
-            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080"
+            <iframe src="https://new.lastzone.top/hembedplayer/${escapeHtml(match.ucaster_id_1)}/1/1920/1080"
                     width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
                     allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
     }
     if (match.ucaster_id_2) {
         iframeBlocks.push(`
-            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080"
+            <iframe src="https://new.lastzone.top/hembedplayer/${escapeHtml(match.ucaster_id_2)}/1/1920/1080"
                     width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
                     allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
@@ -1891,25 +1892,25 @@ app.get('/admin', requireAuth, async (req, res) => {
                         <td style="font-weight:700;color:${rCount > 0 ? '#f59e0b' : 'var(--text-muted)'}">${rCount}</td>
                         <td>
                             <div class="actions-cell">
-                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch({
-                                    id:'${m.id}',
-                                    local:\`${(m.local||'').replace(/`/g,'\\`')}\`,
-                                    visitante:\`${(m.visitante||'').replace(/`/g,'\\`')}\`,
-                                    hora:'${m.hora||''}',
-                                    estado:'${m.estado}',
-                                    competicion:\`${(m.competicion||'Other').replace(/`/g,'\\`')}\`,
-                                    deporte:\`${(m.deporte||'Football').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_1:\`${(m.ucaster_id_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_1:\`${(m.ucaster_script_1||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_id_2:\`${(m.ucaster_id_2||'').replace(/`/g,'\\`')}\`,
-                                    ucaster_script_2:\`${(m.ucaster_script_2||'').replace(/`/g,'\\`')}\`,
-                                    logo_local:\`${(m.logo_local||'').replace(/`/g,'\\`')}\`,
-                                    logo_visitante:\`${(m.logo_visitante||'').replace(/`/g,'\\`')}\`
-                                })">Edit</button>
+                                <button type="button" class="btn-sm btn-edit" onclick="loadMatch(${escapeHtml(JSON.stringify({
+                                    id: m.id,
+                                    local: m.local || '',
+                                    visitante: m.visitante || '',
+                                    hora: m.hora || '',
+                                    estado: m.estado,
+                                    competicion: m.competicion || 'Other',
+                                    deporte: m.deporte || 'Football',
+                                    ucaster_id_1: m.ucaster_id_1 || '',
+                                    ucaster_script_1: m.ucaster_script_1 || '',
+                                    ucaster_id_2: m.ucaster_id_2 || '',
+                                    ucaster_script_2: m.ucaster_script_2 || '',
+                                    logo_local: m.logo_local || '',
+                                    logo_visitante: m.logo_visitante || ''
+                                }))})">Edit</button>
                                 <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
                                     <button type="submit" class="btn-sm btn-delete">Delete</button>
                                 </form>
-                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}','${escapeHtml(m.local).replace(/'/g, "\\'")}${m.visitante ? ' vs ' + escapeHtml(m.visitante).replace(/'/g, "\\'") : ''}')">Preview</button>` : ''}
+                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}', ${escapeHtml(JSON.stringify(`${m.local}${m.visitante ? ' vs ' + m.visitante : ''}`))})">Preview</button>` : ''}
                             </div>
                         </td>
                     </tr>`;
@@ -2077,10 +2078,10 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
 
     const iframeBlocks = [];
     if (match.ucaster_id_1) {
-        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
+        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${escapeHtml(match.ucaster_id_1)}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
     if (match.ucaster_id_2) {
-        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
+        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${escapeHtml(match.ucaster_id_2)}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
 
     const hasMulti = iframeBlocks.length > 1;
