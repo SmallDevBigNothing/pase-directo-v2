@@ -1,0 +1,4 @@
+## 2025-02-28 - Insecure Default Fallbacks for Environment Variables
+**Vulnerability:** The application fell back to hardcoded default strings for critical security parameters (`SESSION_SECRET` for cookie signing, and `ADMIN_PASSWORD` for admin panel access) if their respective environment variables were not set.
+**Learning:** This fallback mechanism meant that if a production environment was misconfigured or an environment variable failed to load, the application would silently start using universally known credentials and signing keys, allowing complete administrative access and predictable session cookie forging.
+**Prevention:** Always enforce the presence of critical security environment variables in production by throwing initialization errors (fail-fast principle). Authentication endpoints should verify that stored or expected secrets are strictly defined and truthy before evaluating user input, rather than falling back to default values.
