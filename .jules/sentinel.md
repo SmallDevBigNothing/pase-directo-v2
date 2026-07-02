@@ -1,0 +1,4 @@
+## 2024-05-24 - Hardcoded Secret Fallbacks
+**Vulnerability:** The application was vulnerable to fallback default credentials in `server.js` (a default `ADMIN_PASSWORD` and a default `SESSION_SECRET`), enabling unauthorized admin access and cookie forgery if production environments were misconfigured.
+**Learning:** Developers often add fallback default values to environment variables for local testing convenience but forget to remove or conditionally disable them in production, causing critical production vulnerability.
+**Prevention:** Always enforce the presence of explicit security-critical environment variables (`SESSION_SECRET`, `ADMIN_PASSWORD`) using application startup checks or explicit conditionals (`process.env.NODE_ENV === 'production'`) instead of relying on local hardcoded fallback defaults.
