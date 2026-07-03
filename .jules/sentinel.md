@@ -1,0 +1,4 @@
+## 2026-07-03 - [CRITICAL] Fix hardcoded secret fallbacks
+**Vulnerability:** Insecure default fallbacks bypass environment-based security when configurations are missing. Both `SESSION_SECRET` and `ADMIN_PASSWORD` fell back to hardcoded strings ('futbol-secreto-2026' and 'AdminFutbol2026') if the corresponding environment variables were not set.
+**Learning:** Having static fallback secrets means that missing configuration in production leads to a completely insecure state rather than failing securely. This could allow unauthorized access if an attacker guesses or discovers the fallback values in the codebase.
+**Prevention:** Do not use hardcoded default fallbacks for secrets or passwords. If critical environment variables are missing, the application should fail securely (e.g., throwing an error on startup for `SESSION_SECRET` or denying login for `ADMIN_PASSWORD`).
