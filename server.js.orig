@@ -54,10 +54,10 @@ if (process.env.SUPABASE_URL && process.env.SUPABASE_KEY) {
     supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
 } else {
     console.warn("WARNING: SUPABASE_URL or SUPABASE_KEY not found. Using mock client for local testing.");
-    
+
     // In-memory data store for local testing
     const mockMatches = [];
-    
+
     const mockReports = [
         { id: 'report-1', partido_id: 'mock-uuid-2', canal: 1, created_at: new Date().toISOString() }
     ];
@@ -689,8 +689,8 @@ app.get('/', async (req, res) => {
             border-radius: 20px;
             display: inline-block;
         }
-        .match-action { 
-            text-align: center; 
+        .match-action {
+            text-align: center;
             display: flex;
             flex-direction: column;
             gap: 12px;
@@ -750,8 +750,8 @@ app.get('/', async (req, res) => {
             transition: all var(--transition);
         }
         .search-bar input::placeholder { color: var(--text-muted); }
-        .search-bar input:focus { 
-            border-color: rgba(255, 30, 39, 0.4); 
+        .search-bar input:focus {
+            border-color: rgba(255, 30, 39, 0.4);
             box-shadow: 0 0 0 3px rgba(255, 30, 39, 0.15), 0 8px 30px rgba(0, 0, 0, 0.3);
             background: var(--bg-card-hover);
         }
@@ -1903,7 +1903,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                                 <form action="/admin/eliminar/${m.id}" method="POST" style="margin:0" onsubmit="return confirm('Delete this match?')">
                                     <button type="submit" class="btn-sm btn-delete">Delete</button>
                                 </form>
-                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}', ${escapeHtml(JSON.stringify(m.local + (m.visitante ? ' vs ' + m.visitante : '')))})">Preview</button>` : ''}
+                                ${(m.ucaster_id_1 || m.ucaster_id_2) ? `<button type="button" class="btn-sm btn-preview" onclick="previewStream('${m.id}', '${escapeHtml(m.local + (m.visitante ? ' vs ' + m.visitante : '')).replace(/'/g, "\\'")}')">Preview</button>` : ''}
                             </div>
                         </td>
                     </tr>`;
