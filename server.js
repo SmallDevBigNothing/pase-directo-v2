@@ -890,7 +890,7 @@ app.get('/', async (req, res) => {
     <main class="container">
         <div class="search-bar">
             <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off" aria-label="Search matches">
         </div>
 
         ${allSports.length > 1 ? `
@@ -1357,8 +1357,8 @@ app.get('/admin/login', (req, res) => {
         <p>Enter your admin password to continue.</p>
         <form action="/admin/login" method="POST">
             <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Enter password" required autofocus>
+                <label for="login-password">Password</label>
+                <input type="password" id="login-password" name="password" placeholder="Enter password" required autofocus>
             </div>
             <button type="submit" class="btn-login">Sign In</button>
         </form>
@@ -1779,33 +1779,33 @@ app.get('/admin', requireAuth, async (req, res) => {
             <form id="match-form" action="/admin/add" method="POST">
                 <div class="form-grid">
                     <div class="form-group">
-                        <label>Home Team</label>
-                        <input type="text" name="local" placeholder="e.g. Real Madrid" required>
+                        <label for="match-local">Home Team</label>
+                        <input type="text" id="match-local" name="local" placeholder="e.g. Real Madrid" required>
                     </div>
                     <div class="form-group">
-                        <label>Away Team</label>
-                        <input type="text" name="visitante" placeholder="e.g. Barcelona (optional)">
+                        <label for="match-visitante">Away Team</label>
+                        <input type="text" id="match-visitante" name="visitante" placeholder="e.g. Barcelona (optional)">
                     </div>
                     <div class="form-group">
-                        <label>Date & Time</label>
-                        <input type="datetime-local" name="hora" required>
+                        <label for="match-hora">Date & Time</label>
+                        <input type="datetime-local" id="match-hora" name="hora" required>
                     </div>
                     <div class="form-group">
-                        <label>Competition</label>
-                        <select name="competicion">
+                        <label for="match-competicion">Competition</label>
+                        <select id="match-competicion" name="competicion">
                             ${competitions.map(c => `<option value="${c}">${c}</option>`).join('')}
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Status</label>
-                        <select name="estado" required>
+                        <label for="match-estado">Status</label>
+                        <select id="match-estado" name="estado" required>
                             <option value="Live">Live</option>
                             <option value="Upcoming" selected>Upcoming</option>
                         </select>
                     </div>
                     <div class="form-group">
-                        <label>Sport</label>
-                        <select name="deporte">
+                        <label for="match-deporte">Sport</label>
+                        <select id="match-deporte" name="deporte">
                             <option value="Football">Football</option>
                             <option value="Basketball">Basketball</option>
                             <option value="Tennis">Tennis</option>
@@ -1818,32 +1818,32 @@ app.get('/admin', requireAuth, async (req, res) => {
 
                     <div class="section-divider-label">&#127909; Ucaster Channel 1 (Primary)</div>
                     <div class="form-group">
-                        <label>Channel 1 ID</label>
-                        <input type="text" name="ucaster_id_1" placeholder="e.g. jfgjj4hfdzx">
+                        <label for="match-ucaster_id_1">Channel 1 ID</label>
+                        <input type="text" id="match-ucaster_id_1" name="ucaster_id_1" placeholder="e.g. jfgjj4hfdzx">
                     </div>
                     <div class="form-group">
-                        <label>Channel 1 Script URL</label>
-                        <input type="url" name="ucaster_script_1" placeholder="e.g. https://new.lastzone.top/static/scripts/hucaster.js">
+                        <label for="match-ucaster_script_1">Channel 1 Script URL</label>
+                        <input type="url" id="match-ucaster_script_1" name="ucaster_script_1" placeholder="e.g. https://new.lastzone.top/static/scripts/hucaster.js">
                     </div>
 
                     <div class="section-divider-label">&#127909; Ucaster Channel 2 (Alternate, optional)</div>
                     <div class="form-group">
-                        <label>Channel 2 ID</label>
-                        <input type="text" name="ucaster_id_2" placeholder="Optional">
+                        <label for="match-ucaster_id_2">Channel 2 ID</label>
+                        <input type="text" id="match-ucaster_id_2" name="ucaster_id_2" placeholder="Optional">
                     </div>
                     <div class="form-group">
-                        <label>Channel 2 Script URL</label>
-                        <input type="url" name="ucaster_script_2" placeholder="Optional">
+                        <label for="match-ucaster_script_2">Channel 2 Script URL</label>
+                        <input type="url" id="match-ucaster_script_2" name="ucaster_script_2" placeholder="Optional">
                     </div>
 
                     <div class="section-divider-label">&#127942; Team Logos (optional URLs)</div>
                     <div class="form-group">
-                        <label>Home Logo URL</label>
-                        <input type="url" name="logo_local" placeholder="https://...">
+                        <label for="match-logo_local">Home Logo URL</label>
+                        <input type="url" id="match-logo_local" name="logo_local" placeholder="https://...">
                     </div>
                     <div class="form-group">
-                        <label>Away Logo URL</label>
-                        <input type="url" name="logo_visitante" placeholder="https://...">
+                        <label for="match-logo_visitante">Away Logo URL</label>
+                        <input type="url" id="match-logo_visitante" name="logo_visitante" placeholder="https://...">
                     </div>
                 </div>
                 <div class="form-actions">
@@ -1946,7 +1946,7 @@ app.get('/admin', requireAuth, async (req, res) => {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="preview-title">Stream Preview</h3>
-                <button class="modal-close" onclick="closePreview()">&times;</button>
+                <button class="modal-close" onclick="closePreview()" aria-label="Close preview">&times;</button>
             </div>
             <div class="modal-body">
                 <iframe id="preview-iframe" src="about:blank"></iframe>
