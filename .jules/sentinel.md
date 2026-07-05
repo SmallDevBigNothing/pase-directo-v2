@@ -1,0 +1,4 @@
+## 2024-05-18 - Hardcoded Fallback Secrets
+**Vulnerability:** Core application security mechanisms (like `SESSION_SECRET` for HMAC cookie signing and `ADMIN_PASSWORD` for authentication) were falling back to hardcoded strings if the respective environment variables were not defined.
+**Learning:** This is a common but dangerous pattern where "developer convenience" (falling back to a default for local testing) leaks into production because the environment check isn't strictly enforced. The application continued to operate using known, weak, default secrets rather than failing safely when misconfigured.
+**Prevention:** Always fail fast and securely on missing critical configuration. For sensitive environment variables, especially secrets or passwords, throw an explicit error on startup in production rather than quietly adopting an insecure default. For login logic, always handle the undefined case defensively.
