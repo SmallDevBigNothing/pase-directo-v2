@@ -211,18 +211,22 @@ const requireAuth = (req, res, next) => {
 // ============================================================
 // --- HELPER FUNCTIONS ---
 // ============================================================
+
+// ⚡ Bolt: Cache Intl.DateTimeFormat instances to avoid performance overhead
+// of creating them repeatedly in the formatMatchDate function.
+const formatTimeOptions = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' });
+const formatDateOptions = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
+const formatLocalOptions = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' });
+
 function formatMatchDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' };
-    const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' };
-
-    const timeStr = new Intl.DateTimeFormat('en-US', optionsTime).format(date);
+    const timeStr = formatTimeOptions.format(date);
 
     const now = new Date();
-    const getLocal = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const getLocal = (d) => formatLocalOptions.format(d);
 
     const todayStr = getLocal(now);
     const tomorrowStr = getLocal(new Date(now.getTime() + 86400000));
@@ -231,7 +235,7 @@ function formatMatchDate(dateString) {
     if (matchDayStr === todayStr) return `Today at ${timeStr}`;
     if (matchDayStr === tomorrowStr) return `Tomorrow at ${timeStr}`;
 
-    let dateStr = new Intl.DateTimeFormat('en-US', optionsDate).format(date);
+    let dateStr = formatDateOptions.format(date);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     return `${dateStr} at ${timeStr}`;
 }
