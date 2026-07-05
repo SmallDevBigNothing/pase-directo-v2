@@ -889,8 +889,8 @@ app.get('/', async (req, res) => {
 
     <main class="container">
         <div class="search-bar">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="text" id="search-input" aria-label="Search by team, competition or sport" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
 
         ${allSports.length > 1 ? `
@@ -1881,8 +1881,8 @@ app.get('/admin', requireAuth, async (req, res) => {
                         </td>
                         <td>
                             <label class="toggle-switch" title="Toggle Live/Upcoming">
-                                <input type="checkbox" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
-                                <span class="toggle-slider"></span>
+                                <input type="checkbox" aria-label="Toggle live status" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
+                                <span class="toggle-slider" aria-hidden="true"></span>
                             </label>
                             <div class="status-text ${isLive ? 'live' : 'upcoming'}" id="status-label-${m.id}">${isLive ? 'Live' : 'Upcoming'}</div>
                         </td>
@@ -1946,7 +1946,7 @@ app.get('/admin', requireAuth, async (req, res) => {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="preview-title">Stream Preview</h3>
-                <button class="modal-close" onclick="closePreview()">&times;</button>
+                <button class="modal-close" aria-label="Close preview" onclick="closePreview()">&times;</button>
             </div>
             <div class="modal-body">
                 <iframe id="preview-iframe" src="about:blank"></iframe>
