@@ -1,0 +1,3 @@
+## 2026-07-06 - Server-side rendering and client-side DOM query performance
+**Learning:** `Intl.DateTimeFormat` instantiation inside loop-bound helper functions (like rendering a list of matches) causes severe CPU overhead on the server-side. On the client side, repetitive DOM queries (like querying `.countdown` or `.match-card` on every interval tick or keystroke) cause unnecessary layout thrashing and JS execution overhead.
+**Action:** Cache `Intl.DateTimeFormat` instances as module-level constants to reuse them across calls. On the frontend, query and cache DOM elements and their static properties into an array once upon page load, then iterate through the cache array instead of querying the DOM directly in intervals or event listeners.

@@ -211,18 +211,20 @@ const requireAuth = (req, res, next) => {
 // ============================================================
 // --- HELPER FUNCTIONS ---
 // ============================================================
+
+const CACHED_TIME_FORMATTER = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' });
+const CACHED_DATE_FORMATTER = new Intl.DateTimeFormat('en-US', { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' });
+const CACHED_LOCAL_FORMATTER = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Madrid' });
+
 function formatMatchDate(dateString) {
     if (!dateString) return '';
     const date = new Date(dateString);
     if (isNaN(date.getTime())) return dateString;
 
-    const optionsTime = { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Europe/Madrid' };
-    const optionsDate = { weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Europe/Madrid' };
-
-    const timeStr = new Intl.DateTimeFormat('en-US', optionsTime).format(date);
+    const timeStr = CACHED_TIME_FORMATTER.format(date);
 
     const now = new Date();
-    const getLocal = (d) => d.toLocaleDateString('sv-SE', { timeZone: 'Europe/Madrid' });
+    const getLocal = (d) => CACHED_LOCAL_FORMATTER.format(d);
 
     const todayStr = getLocal(now);
     const tomorrowStr = getLocal(new Date(now.getTime() + 86400000));
@@ -231,7 +233,7 @@ function formatMatchDate(dateString) {
     if (matchDayStr === todayStr) return `Today at ${timeStr}`;
     if (matchDayStr === tomorrowStr) return `Tomorrow at ${timeStr}`;
 
-    let dateStr = new Intl.DateTimeFormat('en-US', optionsDate).format(date);
+    let dateStr = CACHED_DATE_FORMATTER.format(date);
     dateStr = dateStr.charAt(0).toUpperCase() + dateStr.slice(1);
     return `${dateStr} at ${timeStr}`;
 }
@@ -930,13 +932,42 @@ app.get('/', async (req, res) => {
     <div class="report-toast" id="report-toast"></div>
 
     <script>
-        // Countdown timers
-        function updateCountdowns() {
+        // Caching for client-side performance
+        var cachedCountdowns = [];
+        var cachedMatchCards = [];
+        var cachedSections = [];
+
+        function initCache() {
             document.querySelectorAll('.countdown').forEach(function(el) {
                 var kickoff = el.getAttribute('data-kickoff');
-                if (!kickoff) { el.textContent = 'TBD'; return; }
-                var diff = new Date(kickoff).getTime() - Date.now();
-                if (diff <= 0) { el.textContent = 'Starting soon...'; return; }
+                var kickoffTime = kickoff ? new Date(kickoff).getTime() : null;
+                cachedCountdowns.push({ el: el, kickoffTime: kickoffTime });
+            });
+
+            document.querySelectorAll('.match-card').forEach(function(card) {
+                cachedMatchCards.push({
+                    el: card,
+                    text: card.textContent.toLowerCase(),
+                    sport: card.getAttribute('data-sport') || ''
+                });
+            });
+
+            document.querySelectorAll('.comp-section').forEach(function(sec) {
+                cachedSections.push({
+                    el: sec,
+                    cards: Array.from(sec.querySelectorAll('.match-card'))
+                });
+            });
+        }
+        initCache();
+
+        // Countdown timers
+        function updateCountdowns() {
+            var now = Date.now();
+            cachedCountdowns.forEach(function(item) {
+                if (!item.kickoffTime || isNaN(item.kickoffTime)) { item.el.textContent = 'TBD'; return; }
+                var diff = item.kickoffTime - now;
+                if (diff <= 0) { item.el.textContent = 'Starting soon...'; return; }
                 var d = Math.floor(diff / 86400000);
                 var h = Math.floor((diff % 86400000) / 3600000);
                 var m = Math.floor((diff % 3600000) / 60000);
@@ -946,7 +977,7 @@ app.get('/', async (req, res) => {
                 parts.push(String(h).padStart(2,'0') + 'h');
                 parts.push(String(m).padStart(2,'0') + 'm');
                 parts.push(String(s).padStart(2,'0') + 's');
-                el.textContent = 'Starts in ' + parts.join(' ');
+                item.el.textContent = 'Starts in ' + parts.join(' ');
             });
         }
         updateCountdowns();
@@ -958,17 +989,15 @@ app.get('/', async (req, res) => {
 
         function applyFilters() {
             var query = (searchInput ? searchInput.value : '').toLowerCase().trim();
-            document.querySelectorAll('.match-card').forEach(function(card) {
-                var text = card.textContent.toLowerCase();
-                var sport = card.getAttribute('data-sport') || '';
-                var matchesText = !query || text.includes(query);
-                var matchesSport = activeSport === 'all' || sport === activeSport;
-                card.style.display = (matchesText && matchesSport) ? '' : 'none';
+            cachedMatchCards.forEach(function(item) {
+                var matchesText = !query || item.text.includes(query);
+                var matchesSport = activeSport === 'all' || item.sport === activeSport;
+                item.el.style.display = (matchesText && matchesSport) ? '' : 'none';
             });
             // hide empty comp-sections
-            document.querySelectorAll('.comp-section').forEach(function(sec) {
-                var hasVisible = Array.from(sec.querySelectorAll('.match-card')).some(function(c) { return c.style.display !== 'none'; });
-                sec.style.display = hasVisible ? '' : 'none';
+            cachedSections.forEach(function(sec) {
+                var hasVisible = sec.cards.some(function(c) { return c.style.display !== 'none'; });
+                sec.el.style.display = hasVisible ? '' : 'none';
             });
         }
 
