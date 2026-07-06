@@ -1,0 +1,3 @@
+## 2025-03-01 - Missing Accessibility Attributes in Raw HTML Strings
+**Learning:** In applications using raw HTML strings for server-side rendering (like `server.js` here) without a component framework, semantic HTML attributes such as `aria-labels` and `aria-hidden` on decorative elements are frequently missed. Decorative icons like the search magnifying glass were read by screen readers, and inputs/buttons lacking visible labels didn't have accessible names.
+**Action:** Always proactively verify `<input>` fields, `<button>` elements (especially icon-only ones), and decorative `<span>`/`<img>` elements within raw HTML string templates to ensure they have correct `aria-label` or `aria-hidden` attributes respectively.
