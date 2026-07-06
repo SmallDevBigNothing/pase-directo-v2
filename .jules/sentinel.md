@@ -1,0 +1,4 @@
+## 2024-07-06 - Remove Hardcoded Secrets
+**Vulnerability:** Found hardcoded fallback values for `SESSION_SECRET` (used for cookie signing) and `ADMIN_PASSWORD` (used for admin login auth) in `server.js`.
+**Learning:** Hardcoding secrets exposes sensitive application environments, especially in open-source projects or source code leaks. Fallback variables can bypass missing environment constraints and weaken production security without logging.
+**Prevention:** Always require secrets like keys and passwords to be pulled from the environment configuration (e.g. `process.env`). Add runtime checks (such as checking if `process.env.SESSION_SECRET` is defined when `NODE_ENV === 'production'`) that fail securely or halt the app immediately on boot if secrets are missing. Do not use local/developer default values as fallbacks in production.
