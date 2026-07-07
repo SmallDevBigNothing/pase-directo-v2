@@ -889,8 +889,8 @@ app.get('/', async (req, res) => {
 
     <main class="container">
         <div class="search-bar">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="text" id="search-input" aria-label="Search" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
 
         ${allSports.length > 1 ? `
@@ -1357,8 +1357,8 @@ app.get('/admin/login', (req, res) => {
         <p>Enter your admin password to continue.</p>
         <form action="/admin/login" method="POST">
             <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Enter password" required autofocus>
+                <label for="admin-password">Password</label>
+                <input type="password" id="admin-password" name="password" placeholder="Enter password" required autofocus>
             </div>
             <button type="submit" class="btn-login">Sign In</button>
         </form>
@@ -1881,7 +1881,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                         </td>
                         <td>
                             <label class="toggle-switch" title="Toggle Live/Upcoming">
-                                <input type="checkbox" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
+                                <input type="checkbox" aria-label="Toggle match status" ${isLive ? 'checked' : ''} onchange="toggleStatus('${m.id}', this)">
                                 <span class="toggle-slider"></span>
                             </label>
                             <div class="status-text ${isLive ? 'live' : 'upcoming'}" id="status-label-${m.id}">${isLive ? 'Live' : 'Upcoming'}</div>
@@ -1946,7 +1946,7 @@ app.get('/admin', requireAuth, async (req, res) => {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="preview-title">Stream Preview</h3>
-                <button class="modal-close" onclick="closePreview()">&times;</button>
+                <button class="modal-close" aria-label="Close preview modal" onclick="closePreview()">&times;</button>
             </div>
             <div class="modal-body">
                 <iframe id="preview-iframe" src="about:blank"></iframe>
