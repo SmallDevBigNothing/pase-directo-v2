@@ -1,0 +1,3 @@
+## 2025-02-13 - SSR Performance and Intl Object Instantiation
+**Learning:** In a codebase using vanilla JavaScript server-side rendering (without external templating engines), repeatedly instantiating `Intl.DateTimeFormat` objects or calling `Date.prototype.toLocaleDateString` in rendering loops creates severe CPU and memory bottlenecks. `toLocaleDateString` implicitly creates a new `Intl.DateTimeFormat` instance on each invocation, compounding the issue when formatting large match lists.
+**Action:** Always cache `Intl.DateTimeFormat` objects as module-level constants and reuse them with the `.format()` method inside looping helper functions like `formatMatchDate` instead of instantiating new formatters inline or using `toLocale...` methods.
