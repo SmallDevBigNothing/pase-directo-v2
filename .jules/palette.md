@@ -1,0 +1,3 @@
+## 2024-07-08 - Missing Semantic Attributes in SSR Templates
+**Learning:** Because the app uses raw HTML strings for server-side rendering (e.g., inside `server.js`) without a component framework, semantic HTML attributes like `id`/`for` linkages and `aria-labels` are frequently missed.
+**Action:** Always proactively check `<button>` and `<input>` elements in these HTML strings to ensure accessibility attributes are correctly implemented.
