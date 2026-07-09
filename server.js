@@ -8,6 +8,9 @@ const PORT = process.env.PORT || 3000;
 // ============================================================
 // --- SIGNED COOKIE AUTH (Stateless, Serverless-Safe) ---
 // ============================================================
+if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+    throw new Error('CRITICAL: SESSION_SECRET environment variable is missing in production. Application cannot start securely.');
+}
 const COOKIE_SECRET = process.env.SESSION_SECRET || 'futbol-secreto-2026';
 const COOKIE_NAME = 'pd_admin';
 const COOKIE_MAX_AGE = 7 * 24 * 60 * 60; // 7 days in seconds
@@ -1370,8 +1373,10 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'AdminFutbol2026';
-    if (password === adminPassword) {
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    // If ADMIN_PASSWORD is not explicitly set, safely fail and redirect.
+    if (adminPassword && password === adminPassword) {
         const signed = createSignedCookie('authenticated');
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
         res.setHeader('Set-Cookie', `${COOKIE_NAME}=${signed}; HttpOnly; Path=/; Max-Age=${COOKIE_MAX_AGE}; SameSite=Lax${secure}`);
