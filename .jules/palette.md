@@ -1,0 +1,3 @@
+## 2024-06-25 - Missing Semantic HTML Attributes in Server-Rendered Strings
+**Learning:** The application avoids external templating engines and instead relies on raw HTML string interpolation within JavaScript view functions. This pattern frequently leads to missing semantic HTML attributes (like `id`/`for` on forms, or `aria-labels` on inputs and icon-only buttons) because the strings are not parsed by automated accessibility linters that typical component frameworks provide.
+**Action:** Always proactively check `<button>`, `<input>`, and `<label>` elements inside raw HTML strings (especially in `server.js`) to ensure semantic and accessibility attributes are correctly implemented.
