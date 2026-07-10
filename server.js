@@ -888,9 +888,9 @@ app.get('/', async (req, res) => {
     </header>
 
     <main class="container">
-        <div class="search-bar">
-            <span class="search-icon">&#128269;</span>
-            <input type="text" id="search-input" placeholder="Search by team, competition or sport..." autocomplete="off">
+        <div class="search-bar" role="search">
+            <span class="search-icon" aria-hidden="true">&#128269;</span>
+            <input type="search" id="search-input" aria-label="Search by team, competition or sport" placeholder="Search by team, competition or sport..." autocomplete="off">
         </div>
 
         ${allSports.length > 1 ? `
@@ -1357,8 +1357,8 @@ app.get('/admin/login', (req, res) => {
         <p>Enter your admin password to continue.</p>
         <form action="/admin/login" method="POST">
             <div class="input-group">
-                <label>Password</label>
-                <input type="password" name="password" placeholder="Enter password" required autofocus>
+                <label for="password">Password</label>
+                <input id="password" type="password" name="password" placeholder="Enter password" required autofocus>
             </div>
             <button type="submit" class="btn-login">Sign In</button>
         </form>
@@ -1946,7 +1946,7 @@ app.get('/admin', requireAuth, async (req, res) => {
         <div class="modal-content">
             <div class="modal-header">
                 <h3 id="preview-title">Stream Preview</h3>
-                <button class="modal-close" onclick="closePreview()">&times;</button>
+                <button class="modal-close" aria-label="Close preview" onclick="closePreview()">&times;</button>
             </div>
             <div class="modal-body">
                 <iframe id="preview-iframe" src="about:blank"></iframe>
