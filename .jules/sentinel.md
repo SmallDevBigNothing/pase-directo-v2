@@ -1,0 +1,4 @@
+## 2024-05-27 - Hardcoded secrets in Express app
+**Vulnerability:** Found hardcoded fallback values for `SESSION_SECRET` (`'futbol-secreto-2026'`) and `ADMIN_PASSWORD` (`'AdminFutbol2026'`) in `server.js`.
+**Learning:** Hardcoded secrets in serverless functions (which this app seems to use, given `serverless-http` in package.json) are easily exposed if the source code or deployment package is compromised. A fallback secret effectively nullifies the protection of environment variables if they are accidentally omitted.
+**Prevention:** In production environments, always enforce the presence of critical secrets via explicit checks (e.g., `if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) throw new Error(...)`). For authentication, if the password isn't set, default to a secure denial rather than a known fallback string.
