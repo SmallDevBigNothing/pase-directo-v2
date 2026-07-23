@@ -1,7 +1,7 @@
 {
   "name": "pase-directo",
   "version": "1.0.0",
-  "description": "App para gestionar streams de fútbol",
+  "description": "App para gestionar streams de f\u00fatbol",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
