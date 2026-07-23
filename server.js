@@ -32,7 +32,7 @@ function verifySignedCookie(signed) {
         if (sig.length === expected.length && crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) {
             return value;
         }
-    } catch (e) { /* length mismatch */ }
+    } catch (e) { console.error('Cookie signature verification failed:', e.message); }
     return null;
 }
 
