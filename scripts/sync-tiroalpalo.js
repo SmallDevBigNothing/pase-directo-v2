@@ -167,6 +167,25 @@ function parseTitle(raw) {
  * If the hour is between 0 and 5 (inclusive), we assume the match is
  * actually tomorrow (late-night / early-morning broadcast).
  */
+
+// Reusable formatters for performance optimization
+const madridHourFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  hour: 'numeric',
+  hour12: false
+});
+
+const madridUtcFormatter = new Intl.DateTimeFormat('en-US', {
+  timeZone: 'Europe/Madrid',
+  year: 'numeric',
+  month: 'numeric',
+  day: 'numeric',
+  hour: 'numeric',
+  minute: 'numeric',
+  second: 'numeric',
+  hour12: false
+});
+
 function buildIsoDatetime(timeStr) {
   if (!timeStr) return null;
 
@@ -185,12 +204,7 @@ function buildIsoDatetime(timeStr) {
 
   // Determine current hour in Europe/Madrid to avoid tomorrow shifts when running in the morning
   const now = new Date();
-  const formatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Madrid',
-    hour: 'numeric',
-    hour12: false
-  });
-  const parts = formatter.formatToParts(now);
+  const parts = madridHourFormatter.formatToParts(now);
   let currentMadridHour = 0;
   parts.forEach(p => {
     if (p.type === 'hour') {
@@ -213,18 +227,7 @@ function buildIsoDatetime(timeStr) {
   const utcDate = new Date(Date.UTC(targetYear, targetMonth - 1, targetDay, hours, minutes, 0));
 
   // Format this date in Madrid timezone to see what wall-clock time it gets
-  const utcFormatter = new Intl.DateTimeFormat('en-US', {
-    timeZone: 'Europe/Madrid',
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: 'numeric',
-    second: 'numeric',
-    hour12: false
-  });
-
-  const utcParts = utcFormatter.formatToParts(utcDate);
+  const utcParts = madridUtcFormatter.formatToParts(utcDate);
   const val = {};
   utcParts.forEach(p => { val[p.type] = Number(p.value); });
 
