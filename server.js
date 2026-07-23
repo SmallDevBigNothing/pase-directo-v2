@@ -1183,7 +1183,7 @@ app.get('/partido/:id', async (req, res) => {
 
     ${hasMultiSource ? `
     <script>
-        var sources = ${JSON.stringify(iframeBlocks)};
+        var sources = ${JSON.stringify(iframeBlocks).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f')};
         var activeSource = 0;
         function switchSource(index, btn) {
             activeSource = index;
@@ -2095,7 +2095,7 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
     </style></head><body>
     ${hasMulti?'<div class="sb"><button class="active" onclick="sw(0,this)">Source 1</button><button onclick="sw(1,this)">Source 2</button></div>':''}
     <div id="vc">${iframeBlocks[0]||'<p style="color:#555;text-align:center;margin-top:40%">No stream configured.</p>'}</div>
-    ${hasMulti?`<script>var S=${JSON.stringify(iframeBlocks)};function sw(i,b){document.querySelectorAll('.sb button').forEach(function(x){x.classList.remove('active')});b.classList.add('active');var c=document.getElementById('vc');c.innerHTML=S[i];}</script>`:''}
+    ${hasMulti?`<script>var S=${JSON.stringify(iframeBlocks).replace(/</g, '\\u003c').replace(/>/g, '\\u003e').replace(/\//g, '\\u002f')};function sw(i,b){document.querySelectorAll('.sb button').forEach(function(x){x.classList.remove('active')});b.classList.add('active');var c=document.getElementById('vc');c.innerHTML=S[i];}</script>`:''}
     </body></html>`;
 
     res.send(html);
