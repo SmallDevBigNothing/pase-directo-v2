@@ -2205,15 +2205,29 @@ app.post('/api/partidos/sync', async (req, res) => {
     // Stale match cleanup: Delete matches in database that are currently 'Live',
     // have a ucaster_id_1 or ucaster_id_2 (meaning they were automatically scraped),
     // and are NOT in the incoming payload.
+    // Also, pre-fetch all 'Live' and 'Upcoming' matches to avoid N+1 queries later.
+    let existingMatchesMap = new Map();
     try {
         const incomingMatchKeys = new Set(partidos.map(p => `${(p.local || '').toLowerCase()}||${(p.visitante || '').toLowerCase()}`));
         const { data: dbMatches, error: fetchError } = await supabase
             .from('partidos')
-            .select('id, local, visitante, ucaster_id_1, ucaster_id_2')
-            .eq('estado', 'Live');
+            .select('id, local, visitante, ucaster_id_1, ucaster_id_2, estado')
+            .in('estado', ['Live', 'Upcoming']);
 
-        if (!fetchError && dbMatches) {
+        if (fetchError) {
+            console.error('Error fetching matches for cleanup and mapping:', fetchError);
+            return res.status(500).json({ success: false, error: 'Database fetch error' });
+        }
+
+        if (dbMatches) {
+            // Populate the lookup map for later
+            dbMatches.forEach(m => {
+                const key = `${m.local}||${m.visitante || ''}`;
+                existingMatchesMap.set(key, m.id);
+            });
+
             const matchesToDelete = dbMatches.filter(m => {
+                if (m.estado !== 'Live') return false;
                 const isScraped = !!m.ucaster_id_1 || !!m.ucaster_id_2;
                 const key = `${(m.local || '').toLowerCase()}||${(m.visitante || '').toLowerCase()}`;
                 return isScraped && !incomingMatchKeys.has(key);
@@ -2245,18 +2259,6 @@ app.post('/api/partidos/sync', async (req, res) => {
         const normalizedStatus = statusMap[estado] || estado || 'Upcoming';
         const resolvedStatus = (normalizedStatus === 'Live' && !ucaster_id_1 && !ucaster_id_2) ? 'Upcoming' : normalizedStatus;
 
-        const { data: existing, error: searchError } = await supabase
-            .from('partidos')
-            .select('id')
-            .eq('local', local)
-            .eq('visitante', visitante || '')
-            .in('estado', ['Live', 'Upcoming']);
-
-        if (searchError) {
-            console.error('Error searching existing match:', searchError);
-            continue;
-        }
-
         const matchData = {
             local, visitante: visitante || '',
             hora: hora || null,
@@ -2269,8 +2271,10 @@ app.post('/api/partidos/sync', async (req, res) => {
             ucaster_script_2: ucaster_script_2 || null,
         };
 
-        if (existing && existing.length > 0) {
-            const matchId = existing[0].id;
+        const key = `${local}||${visitante || ''}`;
+        const matchId = existingMatchesMap.get(key);
+
+        if (matchId) {
             const { error: updateError } = await supabase.from('partidos').update(matchData).eq('id', matchId);
             if (updateError) {
                 console.error(`Error updating ${local} vs ${visitante}:`, updateError);
