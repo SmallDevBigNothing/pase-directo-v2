@@ -1370,7 +1370,12 @@ app.get('/admin/login', (req, res) => {
 
 app.post('/admin/login', (req, res) => {
     const { password } = req.body;
-    const adminPassword = process.env.ADMIN_PASSWORD || 'AdminFutbol2026';
+    const adminPassword = process.env.ADMIN_PASSWORD;
+
+    if (!adminPassword) {
+        return res.status(500).send('Server configuration error: ADMIN_PASSWORD is not set.');
+    }
+
     if (password === adminPassword) {
         const signed = createSignedCookie('authenticated');
         const secure = process.env.NODE_ENV === 'production' ? '; Secure' : '';
