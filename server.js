@@ -1111,14 +1111,14 @@ app.get('/partido/:id', async (req, res) => {
     const iframeBlocks = [];
     if (match.ucaster_id_1) {
         iframeBlocks.push(`
-            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080"
+            <iframe src="https://one.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080"
                     width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
                     allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
     }
     if (match.ucaster_id_2) {
         iframeBlocks.push(`
-            <iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080"
+            <iframe src="https://one.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080"
                     width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true"
                     allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>
         `);
@@ -1823,7 +1823,7 @@ app.get('/admin', requireAuth, async (req, res) => {
                     </div>
                     <div class="form-group">
                         <label>Channel 1 Script URL</label>
-                        <input type="url" name="ucaster_script_1" placeholder="e.g. https://new.lastzone.top/static/scripts/hucaster.js">
+                        <input type="url" name="ucaster_script_1" placeholder="e.g. https://one.lastzone.top/static/scripts/hucaster.js">
                     </div>
 
                     <div class="section-divider-label">&#127909; Ucaster Channel 2 (Alternate, optional)</div>
@@ -2077,10 +2077,10 @@ app.get('/admin/preview/:id', requireAuth, async (req, res) => {
 
     const iframeBlocks = [];
     if (match.ucaster_id_1) {
-        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
+        iframeBlocks.push(`<iframe src="https://one.lastzone.top/hembedplayer/${match.ucaster_id_1}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
     if (match.ucaster_id_2) {
-        iframeBlocks.push(`<iframe src="https://new.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
+        iframeBlocks.push(`<iframe src="https://one.lastzone.top/hembedplayer/${match.ucaster_id_2}/1/1920/1080" width="100%" height="100%" scrolling="no" frameborder="0" allowtransparency="true" allowfullscreen sandbox="allow-scripts allow-same-origin allow-presentation"></iframe>`);
     }
 
     const hasMulti = iframeBlocks.length > 1;

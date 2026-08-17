@@ -33,9 +33,9 @@ const DRY_RUN = !flag('--live');                                 // default: dry
 const API_URL = option('--api-url', 'http://localhost:3001');
 const API_TOKEN = option('--token', 'test-token-123');
 
-const BASE_URL = 'https://tiroalpalof.org';
+const BASE_URL = 'https://tiroalpaloff.net';
 const DIRECTO_URL = `${BASE_URL}/directo`;
-const UCASTER_SCRIPT = 'https://new.lastzone.top/static/scripts/hucaster.js';
+const UCASTER_SCRIPT = 'https://one.lastzone.top/static/scripts/hucaster.js';
 const RATE_LIMIT_MS = 500;
 
 // ---------------------------------------------------------------------------
@@ -102,14 +102,18 @@ function detectSport(urlPath) {
 // ---------------------------------------------------------------------------
 
 /**
- * Extract competition name from the second path segment.
- * E.g.  /futbol/mundial-2026/slug  →  "Mundial 2026"
+ * Extract competition name from the URL path.
+ * E.g.  /futbol/segunda/slug              →  "Segunda"          (3 segments: sport/league/slug)
+ *       /futbol/italia/coppa-italia/slug   →  "Coppa Italia"     (4 segments: sport/country/league/slug)
  *
  * Replaces dashes with spaces and title-cases each word.
  */
 function extractCompetition(urlPath) {
   const segments = urlPath.replace(/^\//, '').split('/');
-  const raw = segments[1] || '';
+  // The competition is always the second-to-last segment (penultimate).
+  // 4 segments: [sport, country, competition, match-slug] → segments[2]
+  // 3 segments: [sport, competition, match-slug]          → segments[1]
+  const raw = segments.length >= 3 ? segments[segments.length - 2] : '';
   if (!raw) return 'Unknown';
 
   return raw
@@ -303,8 +307,8 @@ function parseListingPage(html) {
 function parseDetailPage(html) {
   const channels = [];
 
-  // Look for links to new.lastzone.top
-  const re = /href="https?:\/\/new\.lastzone\.top\/([a-zA-Z0-9_-]+)"/gi;
+  // Look for links to {new,one}.lastzone.top
+  const re = /href="https?:\/\/(?:new|one)\.lastzone\.top\/([a-zA-Z0-9_-]+)"/gi;
   let m;
 
   while ((m = re.exec(html)) !== null) {

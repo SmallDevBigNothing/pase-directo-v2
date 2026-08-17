@@ -7,7 +7,7 @@ Database: **Supabase** (PostgreSQL)
 ## Architecture & Technical Decisions
 - **Node.js + Express (Netlify Functions + serverless-http)**: Express app wrapped via `serverless-http` in `netlify/functions/server.js`. All routes go through `netlify.toml` redirect.
 - **Persistent database in Supabase**: Full CRUD on the `partidos` table plus a new `reportes` table for user-submitted stream-down reports.
-- **Sandboxed Player (Ad-Blocking)**: Completely bypasses remote script executions of `hucaster.js` (which loaded intrusive overlay/popup ads). Instead, the player now generates a sandboxed `<iframe>` pointing directly to the channel embed on `new.lastzone.top`.
+- **Sandboxed Player (Ad-Blocking)**: Completely bypasses remote script executions of `hucaster.js` (which loaded intrusive overlay/popup ads). Instead, the player now generates a sandboxed `<iframe>` pointing directly to the channel embed on `one.lastzone.top`.
   * Sandbox rules: `sandbox="allow-scripts allow-same-origin allow-presentation"`
   * This blocks popups, popunders, new tabs, and top-level redirection while keeping HLS stream playback intact.
 - **Dual Stream Source (Ucaster)**: Two channels per match (`ucaster_id_1`, `ucaster_script_1`, `ucaster_id_2`, `ucaster_script_2`) with a dynamic source selector in the player view.
@@ -18,7 +18,7 @@ Database: **Supabase** (PostgreSQL)
 - **Competition Grouping**: Matches are grouped by competition (LaLiga, Champions League, etc.) on the public homepage using the `competicion` column.
 - **Multi-Sport Support**: Not just football — supports Basketball, Tennis, Formula 1, MotoGP, IndyCar, and Other via the `deporte` column. Sport filter tabs on homepage allow instant filtering.
 - **Optimized Automatic Scraper (`scripts/sync-tiroalpalo.js`)**:
-  * Scrapes `tiroalpalof.org/directo` for live matches, extracts Ucaster codes from `new.lastzone.top` links, and POSTs to `/api/partidos/sync`.
+  * Scrapes `tiroalpaloff.net/directo` for live matches, extracts Ucaster codes from `{new,one}.lastzone.top` links, and POSTs to `/api/partidos/sync`.
   * **Timezone Offset Patch**: Uses the Madrid timezone to dynamically shift early morning matches (0:00–5:00) to the next calendar date only if scraping in the afternoon/evening of the previous day, preventing incorrect offsets when run in the morning.
   * **Concurrent Scrapes**: Fetches detail pages concurrently (limit of 3 workers) to run faster and prevent sequential timeouts.
   * **Robust Regex**: Regex parser allows unquoted, single-quoted, and absolute link href attributes.
